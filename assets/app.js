@@ -176,3 +176,80 @@ function polyfit(xs, ys, deg) {
   f.coef = b; return f;
 }
 const sigmoid = (z) => 1 / (1 + Math.exp(-z));
+
+// ---------- bölüm ilerleme takibi (Bitirdim / Geri döneceğim) ----------
+const PROG_KEY = "dab-prog";
+function progLoad() { try { return JSON.parse(localStorage.getItem(PROG_KEY) || "{}"); } catch (e) { return {}; } }
+function progSave(p) { try { localStorage.setItem(PROG_KEY, JSON.stringify(p)); } catch (e) {} }
+const ICON = { done: "✅", later: "⏳" };
+
+function pageBadge(info) {
+  if (!info || !info.total) return "";
+  const v = Object.values(info.s || {});
+  const done = v.filter((x) => x === "done").length;
+  if (done >= info.total) return "✅";
+  if (v.length) return "⏳";
+  return "";
+}
+function refreshNav() {
+  const p = progLoad();
+  document.querySelectorAll("header.top nav a").forEach((a) => {
+    const page = a.getAttribute("href");
+    let b = a.querySelector(".pb");
+    const icon = pageBadge(p[page]);
+    if (!b) { b = document.createElement("span"); b.className = "pb"; a.append(b); }
+    b.textContent = icon ? " " + icon : "";
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const page = location.pathname.split("/").pop() || "index.html";
+  const toc = document.querySelector("aside.toc");
+  const heads = [...document.querySelectorAll("main h2")];
+  if (toc && heads.length) {
+    const p = progLoad();
+    p[page] = p[page] || { s: {} };
+    p[page].total = heads.length;
+    progSave(p);
+    const paint = () => {
+      const st = progLoad()[page].s;
+      heads.forEach((h) => {
+        const s = st[h.id];
+        let mark = h.querySelector(".sm");
+        if (!mark) { mark = document.createElement("span"); mark.className = "sm"; h.prepend(mark); }
+        mark.textContent = s ? ICON[s] + " " : "";
+        const link = toc.querySelector(`a[href="#${h.id}"]`);
+        if (link) link.dataset.st = s || "";
+        const bar = document.querySelector(`.secbar[data-for="${h.id}"]`);
+        if (bar) bar.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.v === s));
+      });
+      const v = Object.values(st), d = v.filter((x) => x === "done").length;
+      const sum = toc.querySelector(".tsum");
+      if (sum) sum.textContent = `${d}/${heads.length} bölüm bitti`;
+      refreshNav();
+    };
+    // her bölümün sonuna buton takımı
+    heads.forEach((h, i) => {
+      const bar = document.createElement("div");
+      bar.className = "secbar"; bar.dataset.for = h.id;
+      bar.innerHTML = `<span>📌 <b>${h.textContent.replace(/^[✅⏳]\s*/, "")}</b> bölümü:</span>
+        <button data-v="done">✅ Bitirdim</button>
+        <button data-v="later">⏳ Geri döneceğim</button>
+        <button data-v="">↺ Temizle</button>`;
+      const next = heads[i + 1];
+      if (next) next.before(bar); else document.querySelector("main").append(bar);
+      bar.querySelectorAll("button").forEach((b) => (b.onclick = () => {
+        const q = progLoad(); const v = b.dataset.v;
+        if (v) q[page].s[h.id] = v; else delete q[page].s[h.id];
+        progSave(q); paint();
+        if (v === "done" && next) setTimeout(() => next.scrollIntoView({ behavior: "smooth" }), 250);
+      }));
+    });
+    const sum = document.createElement("div"); sum.className = "tsum"; toc.querySelector("b")?.after(sum);
+    paint();
+  } else refreshNav();
+});
+document.addEventListener("DOMContentLoaded", () => {
+  const a = document.querySelector("header.top nav a.on"), box = document.querySelector("header.top .in");
+  if (a && box) box.scrollLeft = a.offsetLeft - box.clientWidth / 2 + a.clientWidth / 2;
+});

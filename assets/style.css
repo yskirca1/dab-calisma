@@ -81,3 +81,17 @@ details summary{cursor:pointer;font-weight:700}
 .topics p{margin:0;color:var(--muted);font-size:14px}
 footer{text-align:center;color:var(--muted);font-size:13px;padding:30px}
 .katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}
+/* ilerleme takibi */
+.secbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:26px 0 8px;padding:12px 14px;border:1px dashed var(--line);border-radius:12px;background:var(--card);font-size:14px}
+.secbar span{color:var(--muted);margin-right:4px}
+.secbar button{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:6px 11px;border-radius:999px;font-weight:600;font-size:13px;cursor:pointer}
+.secbar button.on[data-v=done]{background:color-mix(in srgb,var(--good) 18%,transparent);border-color:var(--good)}
+.secbar button.on[data-v=later]{background:var(--a2-soft);border-color:var(--a2)}
+aside.toc a[data-st=done]::before{content:"✅ "}
+aside.toc a[data-st=later]::before{content:"⏳ "}
+aside.toc .tsum{font-size:12px;color:var(--good);font-weight:700;margin-bottom:6px}
+@media (max-width:860px){
+  aside.toc{display:flex;flex-wrap:wrap;gap:6px;position:static;margin-bottom:-10px}
+  aside.toc b,aside.toc .tsum{width:100%;margin:0}
+  aside.toc a{padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:13px}
+}
