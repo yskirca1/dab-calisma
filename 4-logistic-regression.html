@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>4 · Lojistik Regresyon — DAB Çalışma</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.cm{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;max-width:420px;font-size:14px;text-align:center}
+.cm div{padding:8px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+.cm .h{background:transparent;border:0;font-weight:700;color:var(--muted)}
+.cm .tp,.cm .tn{background:color-mix(in srgb,var(--good) 16%,transparent)}
+.cm .fp,.cm .fn{background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.cm b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+</style>
+</head><body>
+<div class="wrap"><aside class="toc"></aside><main>
+<span class="tag">Hafta 4</span>
+<h1>Sınıflandırma: Lojistik Regresyon</h1>
+<p class="lead">Y'nin kendisini değil, Y'nin bir sınıfa ait olma <b>olasılığını</b> modelle — ve bu olasılığı hep 0 ile 1 arasında tut.</p>
+
+<h2 id="whynot">Neden lineer regresyon olmaz?</h2>
+<p><b>1) Kodlama sorunu.</b> Acil serviste 3 teşhis: stroke, drug overdose, epileptic seizure. \(Y = 1, 2, 3\) diye kodlarsak sonuçlar arasında bir <b>sıralama</b> ve <b>eşit mesafe</b> varsaymış oluruz; başka bir kodlama (ör. overdose=1) <b>tamamen farklı</b> bir model verir. 1-2-3 kodlaması ancak doğal sıralama varsa (hafif / orta / ağır) ve aralar eşitse mantıklı olurdu.</p>
+<p><b>2) Olasılık aralık dışı.</b> İki sınıfta 0/1 kodlayıp lineer regresyon yaparsak \(\hat Y\)'yi \(P(Y=1\mid X)\) gibi okuyabiliriz ama bazı tahminler <b>0'ın altına veya 1'in üstüne</b> çıkar — olasılık olarak anlamsız.</p>
+<div class="demo"><h4>Lineer vs Lojistik: Default verisi</h4>
+<p class="hint">Kredi kartı bakiyesi (balance) → temerrüt (default = 1). Lineer regresyon (kesikli) negatif "olasılıklar" üretiyor; lojistik (yeşil) her zaman [0,1] arasında S eğrisi.</p>
+<canvas id="whyCv"></canvas>
+<div class="ctrl"><label><input type="checkbox" id="showLin" checked> Lineer regresyonu göster</label><label><input type="checkbox" id="showLog" checked> Lojistik regresyonu göster</label></div>
+</div>
+
+<h2 id="model">Lojistik model</h2>
+$$p(X) = P(Y=1\mid X) = \frac{e^{\beta_0+\beta_1X}}{1+e^{\beta_0+\beta_1X}} = \frac{1}{1+e^{-(\beta_0+\beta_1X)}}$$
+<p>Bu <b>logistic (sigmoid) fonksiyon</b> X ne olursa olsun S şeklinde bir eğri üretir ve çıktı her zaman 0–1 arasındadır.</p>
+<h3>Odds ve log-odds (logit)</h3>
+$$\underbrace{\frac{p(X)}{1-p(X)}}_{\text{odds}} = e^{\beta_0+\beta_1X} \qquad\Longrightarrow\qquad \underbrace{\log\!\left(\frac{p(X)}{1-p(X)}\right)}_{\text{log-odds / logit}} = \beta_0+\beta_1X$$
+<ul><li>Odds 0 ile ∞ arasında. Ör. p = 0.2 → odds = 0.2/0.8 = 1/4 (5 kişiden 1'i temerrüde düşer). p = 0.9 → odds = 9.</li>
+<li>Lojistik regresyonda <b>log-odds X'e göre lineerdir</b>.</li>
+<li><b>Yorum:</b> X 1 birim artınca log-odds \(\beta_1\) kadar artar ⇔ odds \(e^{\beta_1}\) <b>katına çıkar</b>. p(X)'teki değişim ise X'in o anki değerine bağlıdır (eğri lineer değil). \(\beta_1>0\) → X artınca p artar.</li></ul>
+
+<div class="demo"><h4>β₀ ve β₁ ile oyna</h4>
+<p class="hint">β₁ eğrinin <b>dikliğini</b> (ve yönünü), β₀ eğrinin <b>konumunu</b> belirler. Karar sınırı p = 0.5 ⇔ \(x = -\beta_0/\beta_1\). "MLE ile fit et" maksimum olabilirlik çözümüne animasyonla gider.</p>
+<canvas id="sigCv"></canvas>
+<div class="ctrl"><label>β₀ <input id="sb0" type="range" min="-8" max="8" step="0.05" value="0"><output id="sb0o"></output></label>
+<label>β₁ <input id="sb1" type="range" min="-4" max="4" step="0.02" value="1"><output id="sb1o"></output></label>
+<button class="b p" id="mle">▶ MLE ile fit et</button><button class="b" id="sNew">🎲 Yeni veri</button></div>
+<div class="stats"><div class="stat">Log-likelihood ℓ(β)<b id="sLL">–</b></div><div class="stat">Karar sınırı x*<b id="sDB">–</b></div><div class="stat">x=1 iken p<b id="sP1">–</b></div><div class="stat">Odds çarpanı e^β₁<b id="sOR">–</b></div></div>
+</div>
+
+<h2 id="mle-s">Katsayıları tahmin etmek: Maximum Likelihood</h2>
+<p>Lineer regresyondaki gibi least squares kullanılabilirdi ama <b>maximum likelihood</b> daha iyi istatistiksel özelliklere sahip. Sezgi: öyle \(\beta_0,\beta_1\) bul ki temerrüde düşenler için \(\hat p(x_i)\) 1'e, düşmeyenler için 0'a mümkün olduğunca yakın olsun.</p>
+$$\ell(\beta_0,\beta_1) = \prod_{i:\,y_i=1} p(x_i)\prod_{i':\,y_{i'}=0}\big(1-p(x_{i'})\big)$$
+$$\log \ell = \sum_{i=1}^n \Big[y_i\log p(x_i) + (1-y_i)\log\big(1-p(x_i)\big)\Big]$$
+<p>Kapalı form çözüm <b>yok</b> → iteratif sayısal yöntemlerle (gradient ascent, Newton-Raphson) çözülür. Log-likelihood'un negatifi = <b>log loss / cross-entropy</b>.</p>
+
+<h3>Default verisi: default ~ balance</h3>
+<div class="tw"><table><tr><th></th><th>Coefficient</th><th>Std. error</th><th>z-statistic</th><th>p-value</th></tr>
+<tr><td>Intercept</td><td>−10.6513</td><td>0.3612</td><td>−29.5</td><td>&lt; 0.0001</td></tr>
+<tr><td>balance</td><td>0.0055</td><td>0.0002</td><td>24.9</td><td>&lt; 0.0001</td></tr></table></div>
+<p>\(\hat\beta_1 = 0.0055\): balance +1$ → log-odds +0.0055. z-istatistiği lineer regresyondaki t gibi: \(z = \hat\beta_1/\operatorname{SE}(\hat\beta_1)\). <b>Not:</b> Bu SE/z/p-value tablolarını R ve <code>statsmodels</code> verir, <b>scikit-learn vermez</b>.</p>
+
+<h3>Tahmin</h3>
+$$\hat p(1000) = \frac{e^{-10.6513+0.0055\times1000}}{1+e^{-10.6513+0.0055\times1000}} = 0.00576 \qquad \hat p(2000) = 0.586$$
+<div class="demo" style="padding:12px 16px"><h4>Hesap makinesi</h4>
+<div class="ctrl" style="margin-top:0"><label>balance $ <input id="calcB" type="range" min="0" max="2800" step="50" value="1000"><output id="calcBo"></output></label></div>
+<div id="calcOut" class="box" style="margin-bottom:0"></div></div>
+
+<h2 id="qual">Nitel predictor: student</h2>
+<p>Dummy: student = 1, değil = 0.</p>
+<div class="tw"><table><tr><th></th><th>Coefficient</th><th>Std. error</th><th>z</th><th>p-value</th></tr>
+<tr><td>Intercept</td><td>−3.5041</td><td>0.0707</td><td>−49.55</td><td>&lt; 0.0001</td></tr>
+<tr><td>student[Yes]</td><td>0.4049</td><td>0.1150</td><td>3.52</td><td>0.0004</td></tr></table></div>
+$$\hat P(\text{default}\mid\text{student}) = \frac{e^{-3.5041+0.4049}}{1+e^{-3.5041+0.4049}} = 0.0431, \qquad \hat P(\text{default}\mid\text{non-student}) = 0.0292$$
+
+<h2 id="multi">Çoklu lojistik regresyon</h2>
+$$p(X) = \frac{e^{\beta_0+\beta_1X_1+\dots+\beta_pX_p}}{1+e^{\beta_0+\beta_1X_1+\dots+\beta_pX_p}}$$
+<div class="tw"><table><tr><th></th><th>Coefficient</th><th>Std. error</th><th>z</th><th>p-value</th></tr>
+<tr><td>Intercept</td><td>−10.8690</td><td>0.4923</td><td>−22.08</td><td>&lt; 0.0001</td></tr>
+<tr><td>balance</td><td>0.0057</td><td>0.0002</td><td>24.74</td><td>&lt; 0.0001</td></tr>
+<tr><td>income (bin $)</td><td>0.0030</td><td>0.0082</td><td>0.37</td><td>0.7115</td></tr>
+<tr><td>student[Yes]</td><td>−0.6468</td><td>0.2362</td><td>−2.74</td><td>0.0062</td></tr></table></div>
+<p>balance=1500, income=40 (bin $) olan bir <b>öğrenci</b>: \(\hat p = \dfrac{e^{-10.869+0.00574(1500)+0.003(40)-0.6468(1)}}{1+e^{\dots}} = 0.058\). Aynı özellikte öğrenci <b>olmayan</b>: 0.105.</p>
+<div class="box exam"><b>Confounding (karıştırıcı) paradoksu:</b> Tek başına student katsayısı <b>pozitif</b> (+0.40) ama çoklu modelde <b>negatif</b> (−0.65)! Sebep: öğrencilerin bakiyeleri ortalamada daha yüksek ve yüksek bakiye temerrüdü artırıyor. <b>Aynı bakiyede</b> bir öğrenci, öğrenci olmayandan daha az riskli; ama bakiye bilinmiyorsa öğrenci genel olarak daha riskli. (Lineer regresyondaki newspaper–radio hikâyesinin aynısı.)</div>
+
+<h2 id="cm">Confusion matrix ve hata türleri</h2>
+<p>Default verisinde (n = 10 000, eşik 0.5):</p>
+<div class="tw"><table><tr><th></th><th>Gerçek: No</th><th>Gerçek: Yes</th><th>Toplam</th></tr>
+<tr><th>Tahmin: No</th><td>9 644</td><td><b style="color:var(--bad)">252</b></td><td>9 896</td></tr>
+<tr><th>Tahmin: Yes</th><td>23</td><td>81</td><td>104</td></tr>
+<tr><th>Toplam</th><td>9 667</td><td>333</td><td>10 000</td></tr></table></div>
+<ul><li>Toplam yanlış: 252 + 23 = <b>275</b> → hata oranı %2.75 (çok iyi görünüyor…)</li>
+<li>Temerrüde düşmeyen 9 667 kişiden sadece <b>23</b>'ü yanlış etiketlenmiş</li>
+<li>Ama temerrüde düşen 333 kişiden <b>252'si (%75.7) kaçırılmış!</b> Riskli müşterileri yakalamak isteyen bir kredi kartı şirketi için kabul edilemez.</li>
+<li>Kıyas: herkese "No" desek hata oranı 333/10 000 = %3.33 olurdu → dengesiz verilerde <b>accuracy yanıltıcıdır</b>.</li></ul>
+<div class="tw"><table><tr><th>Terim</th><th>Formül</th><th>Diğer adları</th></tr>
+<tr><td>True Positive Rate</td><td>TP / P</td><td><b>Sensitivity</b>, Recall, Power, 1 − Type II error</td></tr>
+<tr><td>False Positive Rate</td><td>FP / N</td><td>Type I error, 1 − <b>Specificity</b></td></tr>
+<tr><td>Specificity</td><td>TN / N</td><td>True Negative Rate</td></tr>
+<tr><td>Precision</td><td>TP / (TP + FP)</td><td>Positive Predictive Value, 1 − False Discovery Rate</td></tr>
+<tr><td>Accuracy</td><td>(TP + TN) / n</td><td>1 − Error rate</td></tr></table></div>
+<p>Eşik 0.5'te: Sensitivity = 81/333 = %24.3, Specificity = 9644/9667 = %99.8.</p>
+
+<h2 id="esik">Eşiği (threshold) değiştirmek</h2>
+<p>Bayes classifier (ve onu yaklaşıklayan lojistik regresyon) <b>toplam</b> hata sayısını minimize eder; hataların hangi sınıftan geldiğine bakmaz. Ama şirket için <b>temerrüde düşecek birini kaçırmak</b> (FN), iyi müşteriyi yanlışlıkla riskli saymaktan (FP) çok daha pahalı.</p>
+$$\hat P(\text{default}=\text{Yes}\mid X=x) > 0.5 \quad\longrightarrow\quad \hat P(\text{default}=\text{Yes}\mid X=x) > 0.2$$
+<div class="tw"><table><tr><th>Eşik 0.2</th><th>Gerçek: No</th><th>Gerçek: Yes</th><th>Toplam</th></tr>
+<tr><th>Tahmin: No</th><td>9 432</td><td>138</td><td>9 570</td></tr>
+<tr><th>Tahmin: Yes</th><td>235</td><td>195</td><td>430</td></tr>
+<tr><th>Toplam</th><td>9 667</td><td>333</td><td>10 000</td></tr></table></div>
+<p>Kaçırılan temerrüt oranı %75.7 → <b>%41.4</b> (138/333). Bedeli: FP 23 → 235; toplam hata %2.75 → <b>%3.73</b>. Toplam hata biraz arttı ama kredi şirketi için <b>tercih edilir</b>.</p>
+
+<div class="demo"><h4>Eşik → Confusion matrix → ROC</h4>
+<p class="hint">Default verisine benzeyen simüle veri (≈%3 temerrüt). Eşiği kaydır: matris ve ROC eğrisi üzerindeki nokta canlı güncellenir. Eşik düşerken sensitivity ↑, specificity ↓.</p>
+<div class="grid2"><canvas id="distCv"></canvas><canvas id="rocCv"></canvas></div>
+<div class="ctrl"><label>Eşik <input id="thr" type="range" min="0.01" max="0.99" step="0.01" value="0.5"><output id="thro"></output></label>
+<button class="b" id="t05">0.5</button><button class="b" id="t02">0.2</button>
+<label>Sınıf ayrımı <input id="sep" type="range" min="0.3" max="4" step="0.1" value="2.2"><output id="sepo"></output></label></div>
+<div class="grid2" style="margin-top:12px">
+<div class="cm"><div class="h"></div><div class="h">Gerçek No</div><div class="h">Gerçek Yes</div>
+<div class="h">Tahmin No</div><div class="tn">TN<b id="cTN"></b></div><div class="fn">FN<b id="cFN"></b></div>
+<div class="h">Tahmin Yes</div><div class="fp">FP<b id="cFP"></b></div><div class="tp">TP<b id="cTP"></b></div></div>
+<div class="stats" style="align-content:start;margin:0"><div class="stat">Hata oranı<b id="mErr"></b></div><div class="stat">Sensitivity (TPR)<b id="mSen"></b></div><div class="stat">Specificity<b id="mSpe"></b></div><div class="stat">Precision<b id="mPre"></b></div><div class="stat">AUC<b id="mAuc"></b></div></div>
+</div></div>
+
+<h2 id="roc">ROC eğrisi ve AUC</h2>
+<p><b>ROC</b> (receiver operating characteristics) eğrisi, <b>tüm olası eşikler</b> için iki hata türünü aynı anda gösterir: x ekseni <b>FPR</b> (1 − specificity), y ekseni <b>TPR</b> (sensitivity).</p>
+<ul><li>İdeal ROC eğrisi <b>sol üst köşeyi</b> sarar.</li>
+<li>Tüm eşikler üzerinden özet performans: <b>AUC</b> (area under the curve). Büyük AUC = daha iyi classifier.</li>
+<li>AUC = 0.5 → köşegen, yazı-tura kadar iyi. AUC = 1 → mükemmel.</li></ul>
+
+<h2 id="mc">Çok sınıflı (multi-class) sınıflandırma</h2>
+<p>Sınıf sayısı K &gt; 2 ise iki yaygın yaklaşım:</p>
+<ul><li><b>One-vs-Rest (OvR):</b> her sınıf için "bu sınıf mı, değil mi?" ikili lojistik model kur (K model); en yüksek olasılığı veren sınıfı seç.</li>
+<li><b>Multinomial (softmax):</b> tek model, bir sınıf baseline:
+$$P(Y=k\mid X=x) = \frac{e^{\beta_{k0}+\beta_{k1}x_1+\dots+\beta_{kp}x_p}}{\sum_{l=1}^{K} e^{\beta_{l0}+\beta_{l1}x_1+\dots+\beta_{lp}x_p}}$$</li></ul>
+
+<h2 id="nonlin">Lineer olmayan karar sınırları</h2>
+<p>Lojistik regresyonun karar sınırı \(\beta_0+\beta_1x_1+\beta_2x_2 = 0\) → <b>lineer</b>. Ama polinom regresyondaki hileyle \(x_1^2, x_2^2, x_1x_2\) gibi dönüştürülmüş özellikler eklersek sınır <b>eğri</b> olur (model katsayılarda hâlâ lineer).</p>
+<div class="demo"><h4>Polinom özelliklerle eğri karar sınırı</h4>
+<p class="hint">Halka şeklindeki veride düz bir çizgi işe yaramaz. Dereceyi 2'ye çıkar ve modeli eğit (gradient ascent ile canlı).</p>
+<canvas id="nlCv"></canvas>
+<div class="ctrl"><label>Özellik derecesi <select id="nlDeg"><option value="1">1 (x₁, x₂)</option><option value="2">2 (+ x₁², x₂², x₁x₂)</option><option value="3">3</option></select></label><button class="b p" id="nlTrain">▶ Eğit</button><label>Veri <select id="nlData"><option value="ring">Halka</option><option value="lin">Lineer ayrılabilir</option><option value="xor">XOR</option></select></label></div>
+<div class="stats"><div class="stat">Train accuracy<b id="nlAcc">–</b></div><div class="stat">İterasyon<b id="nlIt">0</b></div></div>
+</div>
+
+<h2 id="code">Python kodları</h2>
+<details open><summary>Scikit-learn: fit, olasılık, tahmin</summary>
+<pre><code>import pandas as pd
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+
+df = pd.read_csv("Default.csv")
+df["default01"] = (df["default"] == "Yes").astype(int)
+df["student01"] = (df["student"] == "Yes").astype(int)   # dummy
+
+X = df[["balance", "income", "student01"]]
+y = df["default01"]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1, stratify=y)
+
+# DİKKAT: sklearn varsayılan olarak L2 regularization uygular (C=1.0).
+# Ders tablolarıyla (MLE) aynı katsayılar için regularization'ı kapat:
+# C çok büyük (eski sürümlerde penalty=None da olur)
+logit = LogisticRegression(C=1e10, max_iter=1000).fit(X_train, y_train)
+print(logit.intercept_, logit.coef_)
+
+p = logit.predict_proba(X_test)[:, 1]     # P(Y=1 | X)  -> 2. sütun!
+y_hat_05 = logit.predict(X_test)          # eşik 0.5
+y_hat_02 = (p > 0.2).astype(int)          # eşik 0.2 (elle)</code></pre></details>
+<details><summary>Confusion matrix, metrikler, ROC & AUC</summary>
+<pre><code>from sklearn.metrics import (confusion_matrix, classification_report,
+                             accuracy_score, recall_score, precision_score,
+                             roc_curve, roc_auc_score, ConfusionMatrixDisplay)
+import matplotlib.pyplot as plt
+
+cm = confusion_matrix(y_test, y_hat_02)   # satırlar = GERÇEK, sütunlar = TAHMİN (sklearn!)
+tn, fp, fn, tp = cm.ravel()
+print(cm)
+print("Sensitivity:", tp / (tp + fn), " Specificity:", tn / (tn + fp))
+print(classification_report(y_test, y_hat_02))
+
+fpr, tpr, thresholds = roc_curve(y_test, p)
+print("AUC:", roc_auc_score(y_test, p))
+plt.plot(fpr, tpr); plt.plot([0, 1], [0, 1], "--")
+plt.xlabel("False positive rate"); plt.ylabel("True positive rate"); plt.show()</code></pre>
+<div class="box warn">sklearn'ün <code>confusion_matrix</code>'inde <b>satırlar gerçek, sütunlar tahmin</b>; ders tablosunda (ISLR) tersi: satırlar tahmin. Sınavda tabloyu okurken eksen başlıklarına bak!</div></details>
+<details><summary>Statsmodels: SE, z, p-value tablosu</summary>
+<pre><code>import statsmodels.formula.api as smf
+
+m = smf.logit("default01 ~ balance + income + student01", data=df).fit()
+print(m.summary())           # coef, std err, z, P>|z|
+print(np.exp(m.params))      # odds ratio'lar (e^beta)</code></pre></details>
+<details><summary>Multi-class ve polinom özellikler</summary>
+<pre><code>from sklearn.datasets import load_iris
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+from sklearn.pipeline import make_pipeline
+
+X, y = load_iris(return_X_y=True)            # 3 sınıf
+mc = LogisticRegression(max_iter=1000).fit(X, y)   # varsayılan: multinomial (softmax)
+print(mc.predict_proba(X[:3]))                # her satır 3 olasılık, toplam 1
+
+# Lineer olmayan karar sınırı
+poly_logit = make_pipeline(PolynomialFeatures(degree=2), StandardScaler(),
+                           LogisticRegression(max_iter=1000))
+poly_logit.fit(X_train2d, y_train2d)</code></pre></details>
+
+<h2 id="quiz">Mini quiz</h2>
+<div class="quiz"><script type="application/json">[
+{"q":"Lojistik regresyonda X'e göre lineer olan nedir?","o":["p(X)","Odds","Log-odds","1 − p(X)"],"a":2,"e":"\\(\\log(p/(1-p)) = \\beta_0+\\beta_1X\\)."},
+{"q":"\\(\\beta_1 = 0.7\\) ise X 1 birim artınca odds…","o":["0.7 artar","e^0.7 ≈ 2.01 katına çıkar","%70 olur","p 0.7 artar"],"a":1,"e":"Odds çarpanı \\(e^{\\beta_1}\\)."},
+{"q":"p = 0.2 iken odds kaçtır?","o":["0.2","0.25","4","0.8"],"a":1,"e":"0.2/0.8 = 0.25 (1'e 4)."},
+{"q":"Lojistik regresyon katsayıları nasıl bulunur?","o":["Kapalı form least squares","Maximum likelihood (iteratif)","KNN","Bayes kuralı ile doğrudan"],"a":1,"e":"Kapalı form çözüm yok; MLE sayısal olarak maksimize edilir."},
+{"q":"Eşiği 0.5'ten 0.2'ye düşürmek ne yapar?","o":["Sensitivity ↓, specificity ↑","Sensitivity ↑, specificity ↓","İkisi de ↑","Hiçbir şey"],"a":1,"e":"Daha çok kişiye 'Yes' denir: daha fazla TP ama daha fazla FP."},
+{"q":"İdeal ROC eğrisi nerededir?","o":["Köşegen üzerinde","Sağ alt köşede","Sol üst köşeyi sarar","Yatay çizgi"],"a":2,"e":"TPR=1, FPR=0 noktası. AUC→1."},
+{"q":"Default verisinde hata oranı %2.75 ama temerrütlerin %75.7'si kaçırılmış. Bu neyi gösterir?","o":["Model mükemmel","Dengesiz veride accuracy yanıltıcı; sensitivity'e bakmalı","Overfitting","Lineer regresyon daha iyi"],"a":1,"e":"Sadece %3.33 Yes var; herkese No demek bile %3.33 hata."},
+{"q":"Student katsayısı tek başına +, çoklu modelde −. Neden?","o":["Hata","Confounding: öğrencilerin bakiyesi yüksek","Multicollinearity yok","Eşik yanlış"],"a":1,"e":"Bakiye sabit tutulunca öğrenci daha az riskli."},
+{"q":"sklearn'de P(Y=1|X) nasıl alınır?","o":["model.predict(X)","model.predict_proba(X)[:, 1]","model.coef_","model.score(X)"],"a":1,"e":"predict sınıf (eşik 0.5) verir; predict_proba olasılık sütunları."}
+]</script></div>
+</main></div>
+
+<script src="assets/app.js"></script>
+<script>
+// Default benzeri simülasyon
+function defaultData(seed, n = 600) {
+  const r = rng(seed), D = [];
+  for (let i = 0; i < n; i++) { const b = Math.max(0, 800 + randn(r) * 480 + (r() < 0.12 ? 700 : 0)); const p = sigmoid(-10.6513 + 0.0055 * b); D.push([b, r() < p ? 1 : 0]); }
+  return D;
+}
+// ===== Neden lineer değil =====
+(() => {
+  const D = defaultData(9, 900);
+  const P = Plot(document.getElementById("whyCv"), 680, 300, [0, 2800], [-0.25, 1.15], 40);
+  const n = D.length, mx = D.reduce((s, d) => s + d[0], 0) / n, my = D.reduce((s, d) => s + d[1], 0) / n;
+  let a = 0, c = 0; D.forEach(([x, y]) => { a += (x - mx) * (y - my); c += (x - mx) ** 2; });
+  const b1 = a / c, b0 = my - b1 * mx;
+  function draw() {
+    P.clear(); P.clip();
+    P.ctx.fillStyle = "rgba(214,69,69,.08)"; P.ctx.fillRect(P.X(0), P.Y(0), P.w, P.h);
+    P.ctx.fillRect(P.X(0), 0, P.w, P.Y(1));
+    D.forEach(([x, y]) => P.dot(x, y + (y ? -0.02 : 0.02) * Math.random(), y ? css("--a2") : css("--accent"), 2.5));
+    if (document.getElementById("showLin").checked) P.fn((x) => b0 + b1 * x, css("--bad"), 2.5, [6, 4]);
+    if (document.getElementById("showLog").checked) P.fn((x) => sigmoid(-10.6513 + 0.0055 * x), css("--good"), 3);
+    P.unclip();
+    P.text("balance ($) →", 2400, -0.2, css("--muted")); P.text("P(default)", 30, 1.08, css("--muted"));
+    P.text("p < 0 bölgesi: anlamsız!", 60, -0.13, css("--bad"), "bold 12px system-ui");
+  }
+  document.getElementById("showLin").onchange = document.getElementById("showLog").onchange = draw; draw();
+})();
+
+// ===== Sigmoid oyun alanı =====
+(() => {
+  let D, seed = 21;
+  const gen = () => { const r = rng(seed++), tb0 = -1 + 2 * r(), tb1 = 0.8 + 1.5 * r(); D = []; for (let i = 0; i < 60; i++) { const x = -5 + 10 * r(); D.push([x, r() < sigmoid(tb0 + tb1 * x) ? 1 : 0]); } };
+  const P = Plot(document.getElementById("sigCv"), 680, 300, [-5, 5], [-0.1, 1.1], 34);
+  const b0 = document.getElementById("sb0"), b1 = document.getElementById("sb1");
+  const ll = (a, b) => D.reduce((s, [x, y]) => { const p = Math.min(1 - 1e-12, Math.max(1e-12, sigmoid(a + b * x))); return s + (y ? Math.log(p) : Math.log(1 - p)); }, 0);
+  function draw() {
+    const a = +b0.value, b = +b1.value;
+    document.getElementById("sb0o").textContent = a.toFixed(2); document.getElementById("sb1o").textContent = b.toFixed(2);
+    P.clear(); P.clip();
+    P.line(-5, 0.5, 5, 0.5, css("--muted"), 1, [4, 4]);
+    const db = -a / b; if (isFinite(db)) P.line(db, -0.1, db, 1.1, css("--a2"), 1.5, [4, 4]);
+    D.forEach(([x, y]) => { const p = sigmoid(a + b * x); P.line(x, y, x, p, y ? "rgba(232,89,12,.35)" : "rgba(47,91,234,.35)", 1); P.dot(x, y, y ? css("--a2") : css("--accent"), 4.5); });
+    P.fn((x) => sigmoid(a + b * x), css("--good"), 3); P.unclip();
+    document.getElementById("sLL").textContent = ll(a, b).toFixed(2);
+    document.getElementById("sDB").textContent = isFinite(db) && Math.abs(db) < 100 ? db.toFixed(2) : "—";
+    document.getElementById("sP1").textContent = sigmoid(a + b).toFixed(3);
+    document.getElementById("sOR").textContent = Math.exp(b).toFixed(2);
+  }
+  let t = null;
+  document.getElementById("mle").onclick = () => {
+    clearInterval(t); let k = 0;
+    t = setInterval(() => {
+      for (let s = 0; s < 5; s++) { let g0 = 0, g1 = 0; const a = +b0.value, b = +b1.value; D.forEach(([x, y]) => { const e = y - sigmoid(a + b * x); g0 += e; g1 += e * x; }); b0.value = a + 0.02 * g0; b1.value = b + 0.004 * g1; }
+      draw(); if (++k > 120) clearInterval(t);
+    }, 30);
+  };
+  document.getElementById("sNew").onclick = () => { gen(); draw(); };
+  b0.oninput = b1.oninput = draw; gen(); draw();
+})();
+
+// ===== Hesap makinesi =====
+(() => {
+  const s = document.getElementById("calcB");
+  const f = () => {
+    const b = +s.value, z = -10.6513 + 0.0055 * b, p = sigmoid(z);
+    document.getElementById("calcBo").textContent = "$" + b;
+    document.getElementById("calcOut").innerHTML = `log-odds = −10.6513 + 0.0055 × ${b} = <b>${z.toFixed(3)}</b> &nbsp;→ odds = e<sup>${z.toFixed(2)}</sup> = <b>${Math.exp(z).toPrecision(3)}</b> &nbsp;→ p = odds/(1+odds) = <b>${p.toFixed(4)}</b> ${p > 0.5 ? "→ <b>Yes</b> (eşik 0.5)" : "→ <b>No</b> (eşik 0.5)"}`;
+  };
+  s.oninput = f; f();
+})();
+
+// ===== Eşik / CM / ROC =====
+(() => {
+  const thr = document.getElementById("thr"), sep = document.getElementById("sep");
+  const Dc = Plot(document.getElementById("distCv"), 420, 300, [0, 1], [0, 1], 30);
+  const R = Plot(document.getElementById("rocCv"), 420, 300, [0, 1], [0, 1], 30);
+  let S = [];
+  function gen() {
+    const r = rng(77), k = +sep.value; S = [];
+    for (let i = 0; i < 4000; i++) { const y = r() < 0.0333 ? 1 : 0; const z = -3.9 + (y ? k + 0.9 : 0) + randn(r) * 1.05; S.push([sigmoid(z), y]); }
+  }
+  function cm(t) { let tp = 0, fp = 0, tn = 0, fn = 0; S.forEach(([p, y]) => { if (p > t) y ? tp++ : fp++; else y ? fn++ : tn++; }); return { tp, fp, tn, fn }; }
+  let roc = [], auc = 0;
+  function rocCalc() {
+    const P1 = S.filter((s) => s[1]).length, N = S.length - P1;
+    const sorted = S.slice().sort((a, b) => b[0] - a[0]); roc = [[0, 0]]; let tp = 0, fp = 0;
+    sorted.forEach(([, y]) => { y ? tp++ : fp++; roc.push([fp / N, tp / P1]); });
+    auc = 0; for (let i = 1; i < roc.length; i++) auc += (roc[i][0] - roc[i - 1][0]) * (roc[i][1] + roc[i - 1][1]) / 2;
+  }
+  function draw() {
+    const t = +thr.value; document.getElementById("thro").textContent = t.toFixed(2); document.getElementById("sepo").textContent = (+sep.value).toFixed(1);
+    // histogram (log ölçek benzeri: her sınıf kendi içinde normalize)
+    Dc.clear(); const bins = 25, h0 = Array(bins).fill(0), h1 = Array(bins).fill(0);
+    S.forEach(([p, y]) => { const b = Math.min(bins - 1, Math.floor(p * bins)); (y ? h1 : h0)[b]++; });
+    const m0 = Math.max(...h0), m1 = Math.max(...h1);
+    for (let b = 0; b < bins; b++) {
+      const x0 = Dc.X(b / bins), wpx = Dc.X(1 / bins) - Dc.X(0) - 1;
+      Dc.ctx.fillStyle = "rgba(47,91,234,.45)"; Dc.ctx.fillRect(x0, Dc.Y(h0[b] / m0 * 0.9), wpx, Dc.Y(0) - Dc.Y(h0[b] / m0 * 0.9));
+      Dc.ctx.fillStyle = "rgba(232,89,12,.55)"; Dc.ctx.fillRect(x0 + 2, Dc.Y(h1[b] / m1 * 0.9), wpx - 4, Dc.Y(0) - Dc.Y(h1[b] / m1 * 0.9));
+    }
+    Dc.line(t, 0, t, 1, css("--ink"), 2.5);
+    Dc.text("p̂(x) →", 0.82, 0.04, css("--muted")); Dc.text("■ No  (normalize)", 0.45, 0.96, css("--accent"), "bold 11px system-ui"); Dc.text("■ Yes", 0.82, 0.96, css("--a2"), "bold 11px system-ui");
+    Dc.text("← No | Yes →", Math.min(0.75, t + 0.01), 0.75, css("--ink"), "bold 11px system-ui");
+    const c = cm(t), P1 = c.tp + c.fn, N = c.tn + c.fp;
+    ["TP", "FP", "TN", "FN"].forEach((k) => (document.getElementById("c" + k).textContent = c[k.toLowerCase()]));
+    document.getElementById("mErr").textContent = (((c.fp + c.fn) / S.length) * 100).toFixed(2) + "%";
+    document.getElementById("mSen").textContent = ((c.tp / P1) * 100).toFixed(1) + "%";
+    document.getElementById("mSpe").textContent = ((c.tn / N) * 100).toFixed(1) + "%";
+    document.getElementById("mPre").textContent = c.tp + c.fp ? ((c.tp / (c.tp + c.fp)) * 100).toFixed(1) + "%" : "–";
+    document.getElementById("mAuc").textContent = auc.toFixed(3);
+    R.clear(); R.line(0, 0, 1, 1, css("--muted"), 1.5, [5, 4]);
+    R.ctx.beginPath(); R.ctx.strokeStyle = css("--accent"); R.ctx.lineWidth = 3; roc.forEach(([x, y], i) => (i ? R.ctx.lineTo(R.X(x), R.Y(y)) : R.ctx.moveTo(R.X(x), R.Y(y)))); R.ctx.stroke();
+    R.dot(c.fp / N, c.tp / P1, css("--a2"), 8, "#fff");
+    R.text("FPR (1 − specificity) →", 0.45, 0.04, css("--muted")); R.text("TPR ↑", 0.02, 0.95, css("--muted"));
+    R.text(`AUC = ${auc.toFixed(3)}`, 0.55, 0.25, css("--accent"), "bold 14px system-ui");
+  }
+  thr.oninput = draw; sep.oninput = () => { gen(); rocCalc(); draw(); };
+  document.getElementById("t05").onclick = () => { thr.value = 0.5; draw(); };
+  document.getElementById("t02").onclick = () => { thr.value = 0.2; draw(); };
+  gen(); rocCalc(); draw();
+})();
+
+// ===== Lineer olmayan karar sınırı =====
+(() => {
+  const P = Plot(document.getElementById("nlCv"), 680, 380, [-3, 3], [-3, 3], 26);
+  let D = [], w = [], it = 0, timer = null;
+  const feats = (x1, x2, d) => { const f = [1, x1, x2]; if (d >= 2) f.push(x1 * x1, x2 * x2, x1 * x2); if (d >= 3) f.push(x1 ** 3, x2 ** 3, x1 * x1 * x2, x1 * x2 * x2); return f; };
+  function gen() {
+    const r = rng(5), kind = document.getElementById("nlData").value; D = [];
+    for (let i = 0; i < 220; i++) {
+      const x1 = -2.8 + 5.6 * r(), x2 = -2.8 + 5.6 * r(); let y;
+      if (kind === "ring") y = Math.hypot(x1, x2) + randn(r) * 0.25 < 1.6 ? 1 : 0;
+      else if (kind === "lin") y = x1 + 0.6 * x2 + randn(r) * 0.4 > 0 ? 1 : 0;
+      else y = x1 * x2 + randn(r) * 0.4 > 0 ? 1 : 0;
+      D.push([x1, x2, y]);
+    }
+  }
+  const deg = () => +document.getElementById("nlDeg").value;
+  const prob = (x1, x2) => sigmoid(feats(x1, x2, deg()).reduce((s, f, j) => s + f * (w[j] || 0), 0));
+  function reset() { clearInterval(timer); timer = null; w = Array(feats(0, 0, deg()).length).fill(0); it = 0; draw(); }
+  function step() {
+    const d = deg(), g = Array(w.length).fill(0);
+    D.forEach(([a, b, y]) => { const f = feats(a, b, d), e = y - prob(a, b); f.forEach((v, j) => (g[j] += e * v)); });
+    w = w.map((v, j) => v + (0.3 / D.length) * g[j] * (j ? 1 : 1)); it++;
+  }
+  function draw() {
+    P.clear(); const c = P.ctx, st = 8;
+    for (let px = P.pad; px < P.w - 12; px += st) for (let py = 0; py < P.h - P.pad; py += st) {
+      const p = prob(P.ix(px + st / 2), P.iy(py + st / 2));
+      c.fillStyle = `rgba(${p > 0.5 ? "232,89,12" : "47,91,234"},${0.05 + Math.abs(p - 0.5) * 0.35})`; c.fillRect(px, py, st, st);
+    }
+    D.forEach(([a, b, y]) => P.dot(a, b, y ? css("--a2") : css("--accent"), 4));
+    const acc = D.filter(([a, b, y]) => (prob(a, b) > 0.5 ? 1 : 0) === y).length / D.length;
+    document.getElementById("nlAcc").textContent = (acc * 100).toFixed(1) + "%";
+    document.getElementById("nlIt").textContent = it;
+  }
+  document.getElementById("nlTrain").onclick = (e) => {
+    if (timer) { clearInterval(timer); timer = null; e.target.textContent = "▶ Eğit"; return; }
+    e.target.textContent = "⏸ Durdur";
+    timer = setInterval(() => { for (let k = 0; k < 15; k++) step(); draw(); if (it > 3000) { clearInterval(timer); timer = null; e.target.textContent = "▶ Eğit"; } }, 40);
+  };
+  document.getElementById("nlDeg").onchange = reset;
+  document.getElementById("nlData").onchange = () => { gen(); reset(); };
+  gen(); reset();
+})();
+</script>
+</body></html>

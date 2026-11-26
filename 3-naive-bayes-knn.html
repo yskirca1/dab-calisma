@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3 · Sınıflandırma: Naive Bayes & KNN — DAB Çalışma</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.icons{display:grid;grid-template-columns:repeat(20,1fr);gap:3px;margin:10px 0}
+.icons i{aspect-ratio:1;border-radius:3px;display:block;transition:opacity .3s,transform .3s}
+.icons i.lose{opacity:.18;transform:scale(.7)}
+.nbsel{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
+.nbsel select{padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:14px}
+tr.hit td{background:var(--a2-soft)}
+.bar{height:22px;border-radius:6px;transition:width .5s;color:#fff;font-size:12px;font-weight:700;padding:2px 8px;white-space:nowrap}
+</style>
+</head><body>
+<div class="wrap"><aside class="toc"></aside><main>
+<span class="tag">Hafta 3</span>
+<h1>Sınıflandırma: Naive Bayes & K-Nearest Neighbors</h1>
+<p class="lead">Response nitel (kategori) olduğunda: önce her sınıfın <b>olasılığını</b> tahmin et, sonra en olası sınıfı seç.</p>
+
+<h2 id="cls">Sınıflandırma nedir?</h2>
+<p>Örnekler: hastanın geçmişine bakıp <b>kanser / değil</b>, bir yüz fotoğrafından <b>mutlu / mutsuz</b>, e-posta metninden <b>spam / değil</b>. Regresyondaki gibi elimizde eğitim gözlemleri \((x_1,y_1),\dots,(x_n,y_n)\) var; amaç bir <b>classifier</b> kurmak.</p>
+<p>Bu bölümde: <b>Naive Bayes</b> ve <b>KNN</b>. Sonraki bölüm: <b>Logistic Regression</b>. (Daha sonra: karar ağaçları, random forest…)</p>
+
+<h2 id="prob">Olasılık tekrarı</h2>
+<h3>Koşullu olasılık</h3>
+$$P(A\mid B) = \frac{P(A\cap B)}{P(B)}, \quad P(B)>0 \qquad\Rightarrow\qquad P(A\cap B) = P(B)\,P(A\mid B)$$
+<p>"B olduğunu biliyorken A'nın olasılığı" — evren B'ye daralır.</p>
+<h3>Toplam olasılık teoremi</h3>
+<p>\(A_1,\dots,A_n\) örnek uzayı <b>ayrık</b> parçalara bölüyorsa (mutually exclusive & collectively exhaustive):</p>
+$$P(B) = P(A_1)P(B\mid A_1) + \dots + P(A_n)P(B\mid A_n)$$
+<h3>Bayes kuralı</h3>
+$$P(A_i\mid B) = \frac{P(A_i)\,P(B\mid A_i)}{P(B)} = \frac{P(A_i)\,P(B\mid A_i)}{\sum_k P(A_k)\,P(B\mid A_k)}$$
+<p><b>Neden önemli?</b> Bir "etkiyi" (effect) gözlemleriz ve "nedeni" (cause) çıkarsamak isteriz. Ör: Röntgende gölge gördük (B). Nedeni kötü huylu tümör mü (A₁), iyi huylu tümör mü (A₂), başka bir şey mi (A₃)?</p>
+<ul><li>\(P(A_i)\) = <b>prior</b> (gözlemden önceki inanç)</li><li>\(P(B\mid A_i)\) = <b>likelihood</b></li><li>\(P(A_i\mid B)\) = <b>posterior</b> (gözlemden sonra güncellenmiş inanç)</li></ul>
+
+<div class="demo"><h4>Satranç turnuvası örneği</h4>
+<p class="hint">Rakiplerinin %50'si tip 1, %25'i tip 2, %25'i tip 3. Kazanma olasılığın sırasıyla 0.3, 0.4, 0.5. <b>Kazandığını biliyorsan</b>, rakibin tip 1 olma olasılığı nedir? Aşağıda 400 maç: soluk kareler = kaybedilen maçlar. Posterior = kazanılanlar içindeki pay.</p>
+<div class="grid2">
+<div>
+<div class="ctrl" style="flex-direction:column;align-items:flex-start">
+<label>P(Tip1) <input id="p1" type="range" min="0" max="1" step="0.05" value="0.5"><output id="p1o"></output></label>
+<label>P(Tip2) <input id="p2" type="range" min="0" max="1" step="0.05" value="0.25"><output id="p2o"></output></label>
+<span style="font-size:13px;color:var(--muted)">P(Tip3) = 1 − P(Tip1) − P(Tip2) = <b id="p3o"></b></span>
+<label>P(Win | Tip1) <input id="w1" type="range" min="0" max="1" step="0.05" value="0.3"><output id="w1o"></output></label>
+<label>P(Win | Tip2) <input id="w2" type="range" min="0" max="1" step="0.05" value="0.4"><output id="w2o"></output></label>
+<label>P(Win | Tip3) <input id="w3" type="range" min="0" max="1" step="0.05" value="0.5"><output id="w3o"></output></label>
+<label><input type="checkbox" id="condWin"> Sadece kazandığım maçları göster (B'ye koşulla)</label>
+</div></div>
+<div><div class="icons" id="icons"></div></div></div>
+<div id="bayesOut" class="box"></div>
+</div>
+<div class="box exam">Adım adım: <b>(1)</b> Toplam olasılık: \(P(W) = 0.5(0.3)+0.25(0.4)+0.25(0.5) = 0.375\). <b>(2)</b> Bayes: \(P(T_1\mid W) = \dfrac{0.5\cdot 0.3}{0.375} = 0.4\). Kazanınca tip 1 olma olasılığı 0.5'ten 0.4'e <b>düştü</b> (tip 1'ler zor rakip).</div>
+
+<h2 id="bayesclf">Optimal Bayes classifier</h2>
+<p>Bir test gözlemini, <b>posterior olasılığı en büyük</b> sınıfa ata:</p>
+$$\hat y = \arg\max_{j}\; P(Y=j \mid X=x_0)$$
+<p>İki sınıfta: \(P(Y=1\mid X=x_0) > 0.5\) ise sınıf 1. Bu classifier, <b>mümkün olan en düşük test hata oranını</b> (Bayes error rate) verir:</p>
+$$\text{Bayes error rate} = 1 - E\Big(\max_j P(Y=j\mid X)\Big)$$
+<div class="box warn"><b>Büyük bir "ama"…</b> Gerçek hayatta \(P(Y\mid X)\) koşullu dağılımını <b>bilmiyoruz</b>. Bayes classifier ulaşılamaz bir "altın standart". Pratik yöntemler (Naive Bayes, KNN, lojistik regresyon) bu olasılığı <b>veriden tahmin etmeye</b> çalışır.</div>
+
+<h2 id="nb">Naive Bayes</h2>
+<p>Bayes teoremini sınıflandırmaya uygula (\(\pi_k = P(Y=k)\) prior):</p>
+$$P(Y=k\mid X=x) = \frac{\pi_k\,P(X=x\mid Y=k)}{\sum_l \pi_l\,P(X=x\mid Y=l)}$$
+<p>Sorun: \(P(x_1,\dots,x_p\mid Y=k)\) <b>ortak</b> dağılımını tahmin etmek için devasa veri gerekir. <b>"Naive" varsayım:</b> sınıf verildiğinde özellikler <b>birbirinden bağımsız</b>:</p>
+$$P(x_1,\dots,x_p \mid Y=k) = \prod_{j=1}^{p} P(x_j\mid Y=k) \quad\Rightarrow\quad \hat y = \arg\max_k\; \pi_k \prod_{j=1}^{p} P(x_j \mid Y=k)$$
+<p>Payda tüm sınıflar için aynı olduğundan karşılaştırmada <b>atılabilir</b> (ama olasılığı istiyorsak normalize ederiz).</p>
+<h3>Olasılıkları veriden tahmin etmek</h3>
+<ul><li><b>Prior:</b> \(\hat\pi_k = n_k / n\) (k sınıfındaki gözlem oranı)</li>
+<li><b>Kategorik özellik:</b> \(\hat P(x_j = v\mid Y=k) = \dfrac{\#\{x_j=v,\ Y=k\}}{n_k}\)</li>
+<li><b>Sayısal özellik (Gaussian NB):</b> her sınıf için ortalama \(\mu_{jk}\) ve varyans \(\sigma^2_{jk}\) tahmin et, \(P(x_j\mid Y=k) = \frac{1}{\sqrt{2\pi\sigma_{jk}^2}}\exp\!\big(-\frac{(x_j-\mu_{jk})^2}{2\sigma_{jk}^2}\big)\)</li>
+<li><b>Sıfır olasılık problemi:</b> bir değer bir sınıfta hiç görülmemişse çarpım 0 olur → <b>Laplace smoothing</b>: \(\dfrac{\text{sayı}+1}{n_k + (\text{değer sayısı})}\)</li></ul>
+
+<div class="demo"><h4>Naive Bayes hesaplayıcı (elle çözüm adımlarıyla)</h4>
+<p class="hint">Klasik "tenis oynanır mı?" veri seti (14 gün). Yeni günün özelliklerini seç → her adımdaki sayımları ve çarpımı gör. Tabloda seçtiğin değerlerin eşleştiği satırlar renklenir.</p>
+<div class="nbsel" id="nbSel"></div>
+<label style="font-size:14px"><input type="checkbox" id="lap"> Laplace smoothing (+1)</label>
+<div class="tw"><table id="nbTable"></table></div>
+<div id="nbCalc"></div>
+</div>
+
+<h2 id="metric">Performans ölçüsü ve train/test</h2>
+<p>Sınıflandırmada en yaygın ölçü <b>hata oranı</b> (error rate):</p>
+$$\text{Error rate} = \frac1n \sum_{i=1}^n I(y_i \neq \hat y_i), \qquad \text{Accuracy} = 1 - \text{Error rate}$$
+<p>\(I(\cdot)\) gösterge fonksiyonu: yanlış sınıflandırılırsa 1, doğruysa 0.</p>
+<div class="box">Eğitim setindeki performans <b>yanlıdır</b> (biased). Hocanın benzetmesi: finalde derste çözdüğü soruların aynısını sorarsa ezberleyen öğrenciler çok başarılı olur ama bu konuyu öğrendikleri anlamına gelmez. → Veriyi rastgele böl (~%80 train / %20 test), modeli train'de kur, performansı test'te ölç.</div>
+
+<h2 id="knn">K-Nearest Neighbors (KNN)</h2>
+<p>\(P(Y\mid X)\)'i doğrudan tahmin etmenin en sezgisel yolu: test noktasına <b>en yakın K eğitim gözlemine</b> bak (\(\mathcal N_0\) kümesi), oylamaya sok.</p>
+$$P(Y=j\mid X=x_0) \approx \frac1K\sum_{i\in\mathcal N_0} I(y_i = j)$$
+<p>Sonra Bayes kuralı gibi en yüksek olasılıklı sınıfa ata. Uzaklık genelde <b>Öklid</b>: \(d(x,x') = \sqrt{\sum_j (x_j - x'_j)^2}\).</p>
+<div class="box">Slayttaki örnek: 6 mavi, 6 turuncu nokta. K = 3 → siyah çarpıya en yakın 3 nokta: 2 mavi, 1 turuncu → \(P(\text{mavi}) = 2/3\), \(P(\text{turuncu}) = 1/3\) → tahmin: <b>mavi</b>.</div>
+
+<div class="demo"><h4>KNN oyun alanı</h4>
+<p class="hint"><b>Sorgu modu:</b> dokunduğun yere ✕ konur, en yakın K komşu ve çember gösterilir. <b>Nokta ekle modu:</b> seçili renkte eğitim noktası ekler. Karar sınırı arka planla gösterilir — K=1'de ne kadar "pürüzlü", K büyüyünce ne kadar "düz" olduğuna bak.</p>
+<canvas id="knnCv"></canvas>
+<div class="ctrl"><label>K <input id="kK" type="range" min="1" max="25" value="3"><output id="kKo"></output></label>
+<label><input type="checkbox" id="kBg" checked> karar sınırı</label>
+<label>Mod <select id="kMode"><option value="q">Sorgu (✕)</option><option value="b">+ Mavi nokta</option><option value="o">+ Turuncu nokta</option></select></label>
+<button class="b" id="kSlide">Slayt örneği (6+6)</button><button class="b" id="kRand">🎲 Büyük veri</button></div>
+<div class="stats"><div class="stat">P(mavi)<b id="kPb">–</b></div><div class="stat">P(turuncu)<b id="kPo">–</b></div><div class="stat">Tahmin<b id="kPred">–</b></div><div class="stat">Train hata oranı<b id="kErr">–</b></div></div>
+</div>
+<div class="box exam">
+<b>K'nın etkisi (bias–variance):</b> K = 1 → çok esnek, train hatası 0, karar sınırı çok pürüzlü → <b>overfit</b> (düşük bias, yüksek varyans). K büyük → sınır düzleşir, neredeyse lineer → <b>underfit</b> (yüksek bias). En iyi K, test hatası U eğrisinin dibindedir. Yatay eksen genelde <b>1/K</b> çizilir (esneklik).<br>
+<b>Ölçekleme şart:</b> KNN uzaklığa dayalı; gelir (binler) ile yaş (onlar) aynı modele girerse gelir uzaklığı domine eder → <code>StandardScaler</code>.
+</div>
+
+<h2 id="code">Python kodları</h2>
+<details open><summary>KNN + en iyi K'yı seçmek</summary>
+<pre><code>import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+scaler = StandardScaler().fit(X_train)        # SADECE train ile fit (leakage yok)
+X_train_s = scaler.transform(X_train)
+X_test_s  = scaler.transform(X_test)
+
+knn = KNeighborsClassifier(n_neighbors=3)     # K = 3, Öklid uzaklığı
+knn.fit(X_train_s, y_train)
+print("Test accuracy:", accuracy_score(y_test, knn.predict(X_test_s)))
+print(knn.predict_proba(X_test_s[:5]))        # komşulardaki sınıf oranları
+
+# K seçimi: test hatası vs K
+for k in range(1, 31, 2):
+    m = KNeighborsClassifier(n_neighbors=k).fit(X_train_s, y_train)
+    err = 1 - accuracy_score(y_test, m.predict(X_test_s))
+    print(k, round(err, 3))</code></pre></details>
+<details><summary>Naive Bayes (Gaussian & kategorik)</summary>
+<pre><code>from sklearn.naive_bayes import GaussianNB, CategoricalNB
+from sklearn.preprocessing import OrdinalEncoder
+
+# Sayısal özellikler -> GaussianNB (her sınıf için ortalama & varyans)
+gnb = GaussianNB().fit(X_train, y_train)
+print(gnb.class_prior_)          # pi_k
+print(gnb.theta_, gnb.var_)      # sınıf bazında ortalama ve varyans
+print(gnb.predict_proba(X_test[:5]))
+print("Accuracy:", gnb.score(X_test, y_test))
+
+# Kategorik özellikler -> CategoricalNB (alpha=1 => Laplace smoothing)
+tennis = pd.read_csv("tennis.csv")
+enc = OrdinalEncoder()
+Xc = enc.fit_transform(tennis[["Outlook", "Temp", "Humidity", "Wind"]])
+cnb = CategoricalNB(alpha=1).fit(Xc, tennis["Play"])
+new = enc.transform([["Sunny", "Cool", "High", "Strong"]])
+print(cnb.predict(new), cnb.predict_proba(new))</code></pre></details>
+<details><summary>Naive Bayes'i elle (pandas ile sayım)</summary>
+<pre><code>prior = df["Play"].value_counts(normalize=True)           # P(Y=k)
+like = {c: df.groupby("Play")[c].value_counts(normalize=True) for c in ["Outlook","Temp","Humidity","Wind"]}
+x = {"Outlook": "Sunny", "Temp": "Cool", "Humidity": "High", "Wind": "Strong"}
+score = {k: prior[k] * np.prod([like[c].get((k, v), 0) for c, v in x.items()]) for k in prior.index}
+total = sum(score.values())
+print({k: s / total for k, s in score.items()})          # posterior</code></pre></details>
+
+<h2 id="quiz">Mini quiz</h2>
+<div class="quiz"><script type="application/json">[
+{"q":"Naive Bayes'in 'naive' varsayımı nedir?","o":["Sınıflar eşit olasılıklı","Özellikler sınıf verildiğinde koşullu bağımsız","Özellikler normal dağılır","Karar sınırı lineer"],"a":1,"e":"\\(P(x_1..x_p|Y)=\\prod_j P(x_j|Y)\\)."},
+{"q":"K=1 olan KNN'in eğitim hata oranı?","o":["0","0.5","1","K'ye bağlı değil, veriye bağlı yüksek"],"a":0,"e":"Her eğitim noktasının en yakın komşusu kendisi → train hatası 0 (aynı x'te farklı etiket yoksa). Bu overfitting işaretidir."},
+{"q":"K arttıkça KNN karar sınırı…","o":["Daha pürüzlü olur","Daha düz/basit olur","Değişmez","Rastgele olur"],"a":1,"e":"Büyük K → daha az esnek, yüksek bias, düşük varyans."},
+{"q":"P(A)=0.01, P(B|A)=0.9, P(B|Aᶜ)=0.1. P(A|B)≈?","o":["0.9","0.083","0.01","0.5"],"a":1,"e":"P(B)=0.009+0.099=0.108 → P(A|B)=0.009/0.108≈0.083. Düşük prior posterior'u çok düşürür!"},
+{"q":"Bayes classifier pratikte neden doğrudan kullanılamaz?","o":["Çok yavaş","P(Y|X) gerçek dağılımı bilinmiyor","Sadece 2 sınıfta çalışır","Overfit eder"],"a":1,"e":"Altın standart; pratik yöntemler bu olasılığı tahmin etmeye çalışır."},
+{"q":"KNN'den önce neden StandardScaler uygulanır?","o":["Hızlandırmak için","Uzaklık hesabında büyük ölçekli değişkenin baskın olmaması için","Olasılıkları normalize etmek için","Gerekli değil"],"a":1,"e":"Öklid uzaklığı ölçeğe duyarlı."},
+{"q":"Naive Bayes'te bir kategori bir sınıfta hiç görülmemiş. Sorun ve çözüm?","o":["Sorun yok","Çarpım 0 olur → Laplace smoothing","Varyans sonsuz olur → log al","KNN'e geç"],"a":1,"e":"(sayı+1)/(n_k + değer sayısı)."}
+]</script></div>
+</main></div>
+
+<script src="assets/app.js"></script>
+<script>
+// ===== Satranç Bayes =====
+(() => {
+  const ids = ["p1", "p2", "w1", "w2", "w3"], el = (i) => document.getElementById(i);
+  const cols = ["#2f5bea", "#8b5cf6", "#e8590c"];
+  const box = el("icons");
+  const cells = Array.from({ length: 400 }, () => { const i = document.createElement("i"); box.append(i); return i; });
+  const r = rng(42), u = cells.map(() => r());
+  function upd(src) {
+    let p1 = +el("p1").value, p2 = +el("p2").value;
+    if (p1 + p2 > 1) { if (src === "p1") p2 = 1 - p1; else p1 = 1 - p2; el("p1").value = p1; el("p2").value = p2; }
+    const p = [p1, p2, Math.max(0, 1 - p1 - p2)], w = [+el("w1").value, +el("w2").value, +el("w3").value];
+    ids.forEach((i) => (el(i + "o").textContent = (+el(i).value).toFixed(2)));
+    el("p3o").textContent = p[2].toFixed(2);
+    const pw = p.reduce((s, pi, i) => s + pi * w[i], 0), post = p.map((pi, i) => (pw ? (pi * w[i]) / pw : 0));
+    const n1 = Math.round(p[0] * 400), n2 = Math.round(p[1] * 400);
+    const cond = el("condWin").checked;
+    cells.forEach((c, k) => {
+      const t = k < n1 ? 0 : k < n1 + n2 ? 1 : 2;
+      c.style.background = cols[t];
+      const lose = u[k] > w[t];
+      c.classList.toggle("lose", lose);
+      c.style.display = cond && lose ? "none" : "block";
+    });
+    el("bayesOut").innerHTML =
+      `<b>Toplam olasılık:</b> P(Win) = ${p.map((pi, i) => `${pi.toFixed(2)}·${w[i].toFixed(2)}`).join(" + ")} = <b>${pw.toFixed(3)}</b><br>` +
+      `<b>Posterior:</b> ${post.map((q, i) => `<span style="color:${cols[i]};font-weight:700">P(Tip${i + 1}|Win) = ${q.toFixed(3)}</span>`).join(" · ")}` +
+      `<div style="display:flex;margin-top:8px;border-radius:6px;overflow:hidden">${post.map((q, i) => `<div class="bar" style="width:${q * 100}%;background:${cols[i]}">${q > 0.08 ? "Tip" + (i + 1) : ""}</div>`).join("")}</div>`;
+  }
+  ids.forEach((i) => (el(i).oninput = () => upd(i)));
+  el("condWin").onchange = () => upd();
+  upd();
+})();
+
+// ===== Naive Bayes hesaplayıcı =====
+(() => {
+  const cols = ["Hava", "Sıcaklık", "Nem", "Rüzgar"];
+  const D = [
+    ["Güneşli", "Sıcak", "Yüksek", "Zayıf", "Hayır"], ["Güneşli", "Sıcak", "Yüksek", "Güçlü", "Hayır"], ["Bulutlu", "Sıcak", "Yüksek", "Zayıf", "Evet"],
+    ["Yağmurlu", "Ilık", "Yüksek", "Zayıf", "Evet"], ["Yağmurlu", "Serin", "Normal", "Zayıf", "Evet"], ["Yağmurlu", "Serin", "Normal", "Güçlü", "Hayır"],
+    ["Bulutlu", "Serin", "Normal", "Güçlü", "Evet"], ["Güneşli", "Ilık", "Yüksek", "Zayıf", "Hayır"], ["Güneşli", "Serin", "Normal", "Zayıf", "Evet"],
+    ["Yağmurlu", "Ilık", "Normal", "Zayıf", "Evet"], ["Güneşli", "Ilık", "Normal", "Güçlü", "Evet"], ["Bulutlu", "Ilık", "Yüksek", "Güçlü", "Evet"],
+    ["Bulutlu", "Sıcak", "Normal", "Zayıf", "Evet"], ["Yağmurlu", "Ilık", "Yüksek", "Güçlü", "Hayır"],
+  ];
+  const vals = cols.map((_, j) => [...new Set(D.map((r) => r[j]))]);
+  const defaults = ["Güneşli", "Serin", "Yüksek", "Güçlü"];
+  const sel = document.getElementById("nbSel");
+  const S = cols.map((c, j) => {
+    const s = document.createElement("select");
+    s.innerHTML = vals[j].map((v) => `<option ${v === defaults[j] ? "selected" : ""}>${v}</option>`).join("");
+    const l = document.createElement("label"); l.style.fontSize = "14px"; l.append(c + ": ", s); sel.append(l);
+    s.onchange = run; return s;
+  });
+  document.getElementById("lap").onchange = run;
+  function run() {
+    const x = S.map((s) => s.value), lap = document.getElementById("lap").checked;
+    document.getElementById("nbTable").innerHTML = `<tr><th>#</th>${cols.map((c) => `<th>${c}</th>`).join("")}<th>Oyna?</th></tr>` +
+      D.map((r, i) => `<tr>${["<td>" + (i + 1) + "</td>"].concat(r.map((v, j) => `<td style="${j < 4 && v === x[j] ? "background:var(--a2-soft);font-weight:700" : ""}">${v}</td>`)).join("")}</tr>`).join("");
+    const cls = ["Evet", "Hayır"], out = [];
+    const scores = cls.map((k) => {
+      const nk = D.filter((r) => r[4] === k).length, prior = nk / D.length;
+      let s = prior; const parts = [`P(${k}) = ${nk}/${D.length}`];
+      x.forEach((v, j) => {
+        const c = D.filter((r) => r[4] === k && r[j] === v).length;
+        const num = c + (lap ? 1 : 0), den = nk + (lap ? vals[j].length : 0);
+        s *= num / den; parts.push(`P(${cols[j]}=${v} | ${k}) = ${num}/${den}`);
+      });
+      out.push({ k, parts, s }); return s;
+    });
+    const tot = scores.reduce((a, b) => a + b, 0);
+    const win = scores[0] >= scores[1] ? 0 : 1;
+    document.getElementById("nbCalc").innerHTML = out.map((o, i) =>
+      `<div class="card" style="margin:10px 0;${i === win ? "border-color:var(--good)" : ""}"><b>Sınıf = ${o.k}</b><br><span style="font-size:14px">${o.parts.join(" × <br>")}</span><br>= <b>${o.s.toFixed(5)}</b> &nbsp;→ normalize: <b>${tot ? ((o.s / tot) * 100).toFixed(1) : "–"}%</b></div>`
+    ).join("") + `<div class="box">Tahmin: <b>${cls[win]}</b> ${tot === 0 ? "(iki skor da 0! Laplace'ı aç)" : ""}</div>`;
+  }
+  run();
+})();
+
+// ===== KNN =====
+(() => {
+  const cv = document.getElementById("knnCv");
+  const P = Plot(cv, 680, 420, [0, 10], [0, 7], 26);
+  const B = () => css("--accent"), O = () => css("--a2");
+  let pts = [], q = [5, 3.5];
+  const slide = () => { pts = [[2, 2, 0], [3, 4.5, 0], [4.2, 3, 0], [3, 2.8, 0], [5.4, 4.6, 0], [2.2, 5.3, 0], [6.5, 2.4, 1], [7.4, 4.2, 1], [5.6, 2.2, 1], [8.3, 3, 1], [6.8, 5.5, 1], [4.6, 1.2, 1]]; q = [4.9, 3.4]; };
+  const rand = () => { const r = rng(Math.floor(Math.random() * 1e6)); pts = []; for (let i = 0; i < 140; i++) { const c = i % 2; const x = c ? 6 + randn(r) * 1.6 : 4 + randn(r) * 1.6, y = c ? 3 + randn(r) * 1.3 : 4 + randn(r) * 1.3; if (x > 0 && x < 10 && y > 0 && y < 7) pts.push([x, y, c]); } };
+  const kIn = document.getElementById("kK");
+  function knn(x, y, K, skip = -1) {
+    const d = pts.map((p, i) => [Math.hypot(p[0] - x, p[1] - y), i]).filter((t) => t[1] !== skip).sort((a, b) => a[0] - b[0]).slice(0, K);
+    const po = d.filter((t) => pts[t[1]][2] === 1).length / d.length; return [po, d];
+  }
+  function draw() {
+    const K = Math.min(+kIn.value, pts.length); document.getElementById("kKo").textContent = K;
+    P.clear(); const c = P.ctx;
+    if (document.getElementById("kBg").checked && pts.length) {
+      const st = 8;
+      for (let px = P.pad; px < P.w - 12; px += st) for (let py = 0; py < P.h - P.pad; py += st) {
+        const [po] = knn(P.ix(px + st / 2), P.iy(py + st / 2), K);
+        c.fillStyle = po > 0.5 ? "rgba(232,89,12,.16)" : po < 0.5 ? "rgba(47,91,234,.14)" : "rgba(128,128,128,.12)";
+        c.fillRect(px, py, st, st);
+      }
+    }
+    const [po, nb] = knn(q[0], q[1], K);
+    const rad = nb.length ? nb[nb.length - 1][0] : 0;
+    c.beginPath(); c.arc(P.X(q[0]), P.Y(q[1]), P.X(q[0] + rad) - P.X(q[0]), 0, 7); c.strokeStyle = css("--ink"); c.setLineDash([5, 4]); c.lineWidth = 1.5; c.stroke(); c.setLineDash([]);
+    nb.forEach(([, i]) => P.line(q[0], q[1], pts[i][0], pts[i][1], css("--muted"), 1));
+    const ns = new Set(nb.map((t) => t[1]));
+    pts.forEach((p, i) => P.dot(p[0], p[1], p[2] ? O() : B(), ns.has(i) ? 7 : 5, ns.has(i) ? css("--ink") : null));
+    c.strokeStyle = css("--ink"); c.lineWidth = 3; const X = P.X(q[0]), Y = P.Y(q[1]);
+    c.beginPath(); c.moveTo(X - 7, Y - 7); c.lineTo(X + 7, Y + 7); c.moveTo(X + 7, Y - 7); c.lineTo(X - 7, Y + 7); c.stroke();
+    document.getElementById("kPb").textContent = nb.length ? `${nb.length - Math.round(po * nb.length)}/${nb.length}` : "–";
+    document.getElementById("kPo").textContent = nb.length ? `${Math.round(po * nb.length)}/${nb.length}` : "–";
+    document.getElementById("kPred").textContent = po > 0.5 ? "🟠 turuncu" : po < 0.5 ? "🔵 mavi" : "beraberlik";
+    // train hata (nokta kendisi dahil — sklearn'ün train skoru gibi)
+    let err = 0; pts.forEach((p) => { const [pp] = knn(p[0], p[1], K); if ((pp > 0.5 ? 1 : 0) !== p[2] && pp !== 0.5) err++; });
+    document.getElementById("kErr").textContent = pts.length ? (err / pts.length).toFixed(3) : "–";
+  }
+  cv.addEventListener("pointerdown", (e) => {
+    const [x, y] = P.evt(e), m = document.getElementById("kMode").value;
+    if (x < 0 || x > 10 || y < 0 || y > 7) return;
+    if (m === "q") q = [x, y]; else pts.push([x, y, m === "o" ? 1 : 0]);
+    draw();
+  });
+  cv.addEventListener("pointermove", (e) => { if (e.buttons && document.getElementById("kMode").value === "q") { q = P.evt(e); draw(); } });
+  kIn.oninput = draw; document.getElementById("kBg").onchange = draw;
+  document.getElementById("kSlide").onclick = () => { slide(); kIn.value = 3; draw(); };
+  document.getElementById("kRand").onclick = () => { rand(); draw(); };
+  slide(); draw();
+})();
+</script>
+</body></html>

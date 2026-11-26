@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1 · Veri Analitiğine Genel Bakış — DAB Çalışma</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+<div class="wrap"><aside class="toc"></aside><main>
+<span class="tag">Hafta 1</span>
+<h1>Veri Analitiğine Genel Bakış</h1>
+<p class="lead">Makine öğrenmesinin "ne" ve "neden"i: \(f\) fonksiyonunu veriden tahmin etmek, esneklik–yorumlanabilirlik dengesi ve bir modelin ne kadar iyi olduğunu ölçmek.</p>
+
+<h2 id="ders">Ders hakkında kısaca</h2>
+<div class="tw"><table>
+<tr><th>Bileşen</th><th>Ağırlık</th></tr>
+<tr><td>Final</td><td>%40</td></tr><tr><td>Vize</td><td>%35</td></tr>
+<tr><td>Sınıf içi quizler (4–6 adet)</td><td>%15</td></tr><tr><td>Devam</td><td>%10</td></tr></table></div>
+<div class="box exam">Kodlama alıştırmalarının çözümü verilmiyor ama <b>sınav soruları sıklıkla onlarla ilişkili</b>. Pandas, NumPy ve Scikit-Learn kullanılıyor — bu sitedeki kod blokları ve <code>notebooks/</code> klasörü tam bunun için.</div>
+
+<h2 id="f">Veriden öğrenmek: \(Y = f(X) + \varepsilon\)</h2>
+<p>Analitik bir çözümümüz yok ama verimiz var → veriden <b>ampirik</b> bir çözüm kuruyoruz (finansal tahmin, tıbbi teşhis, görüntü işleme, arama motorları…).</p>
+$$Y = f(X) + \varepsilon$$
+<ul>
+<li>\(X = (X_1,\dots,X_p)\): girdiler / <b>predictor</b>, feature, bağımsız değişken</li>
+<li>\(Y\): çıktı / <b>response</b>, bağımlı değişken</li>
+<li>\(f\): bilinmeyen sabit fonksiyon — \(X\)'in \(Y\) hakkında taşıdığı <b>sistematik</b> bilgi</li>
+<li>\(\varepsilon\): ortalaması 0 olan, \(X\)'ten bağımsız <b>rastgele hata</b></li>
+</ul>
+<p>Amacımız \(f\)'i tahmin eden bir \(\hat f\) bulmak. Bunu iki sebeple isteriz:</p>
+<div class="grid2">
+<div class="card"><h3 style="margin-top:0">🎯 Prediction (Tahmin)</h3>\(\hat Y = \hat f(X)\). \(\hat f\) bir "kara kutu" olabilir; önemli olan \(\hat Y\)'nin doğru olması.</div>
+<div class="card"><h3 style="margin-top:0">🔍 Inference (Çıkarım)</h3>\(Y\) ile \(X\) arasındaki <i>ilişkiyi</i> anlamak: hangi değişkenler etkili, etki pozitif mi negatif mi, ilişki lineer mi?</div>
+</div>
+
+<h3>Azaltılabilir ve azaltılamaz hata</h3>
+$$E\big[(Y-\hat Y)^2\big] = \underbrace{\big[f(X)-\hat f(X)\big]^2}_{\text{reducible}} + \underbrace{\operatorname{Var}(\varepsilon)}_{\text{irreducible}}$$
+<p>Daha iyi bir model seçerek ilk terimi küçültebiliriz; ama \(\varepsilon\)'dan gelen hatayı <b>hiçbir model</b> yok edemez. Bu yüzden test hatası her zaman \(\operatorname{Var}(\varepsilon)\)'nun üzerindedir.</p>
+
+<h2 id="tradeoff">Doğruluk ↔ Yorumlanabilirlik dengesi</h2>
+<p>Bazı yöntemler <b>kısıtlayıcıdır</b> (az sayıda şekil üretebilir, ör. lineer regresyon), bazıları <b>esnektir</b> (spline, yapay sinir ağı, SVM, random forest).</p>
+<div class="demo"><h4>Esneklik–yorumlanabilirlik haritası</h4><p class="hint">Bir yönteme dokun / üzerine gel, neden orada durduğunu gör.</p>
+<canvas id="tradeCv"></canvas><div id="tradeInfo" class="box" style="margin-bottom:0">Bir noktaya dokun.</div></div>
+<div class="box exam">Amaç <b>inference</b> ise kısıtlayıcı (yorumlanabilir) model seç — lineer model \(Y\)–\(X\) ilişkisini kolayca anlatır. Amaç sadece <b>prediction</b> ise esnek model daha iyi olabilir ama aşırı esneklik <i>overfitting</i> getirir, yani her zaman daha esnek = daha iyi değil!</div>
+
+<h2 id="types">Öğrenme türleri</h2>
+<div class="grid2">
+<div class="card"><h3 style="margin-top:0">Supervised (Denetimli)</h3>Her gözlem için hem \(x_i\) hem \(y_i\) var. Ör: eğitim yılı ve kıdemden <b>gelir</b> tahmini. Lineer/lojistik regresyon, KNN, Naive Bayes…</div>
+<div class="card"><h3 style="margin-top:0">Unsupervised (Denetimsiz)</h3>Sadece \(x_i\) var, \(y_i\) yok. Gözlemler arasındaki yapıyı ararız — ör. müşterileri gruplara ayırmak (<b>clustering</b>).</div>
+</div>
+<div class="tw"><table>
+<tr><th></th><th>Regression</th><th>Classification</th></tr>
+<tr><td>Response</td><td>Nicel (quantitative), reel sayı — ör. gelir</td><td>Nitel (qualitative), etiket — ör. borsa ↑/↓, hasta yaşıyor/ölü</td></tr>
+<tr><td>Tipik yöntem</td><td>Least squares linear regression</td><td>Logistic regression, KNN, Naive Bayes</td></tr>
+<tr><td>Hata ölçüsü</td><td>MSE</td><td>Error rate / accuracy, confusion matrix</td></tr></table></div>
+<div class="box">Yöntemi seçerken asıl belirleyici <b>response'un</b> türüdür; predictor'ların nitel olması genelde sorun değil (dummy variable ile kodlanır).</div>
+
+<h2 id="mse">Model doğruluğunu ölçmek: MSE</h2>
+<p><b>No free lunch:</b> Tüm veri setlerinde en iyi olan tek bir yöntem yok. Bu yüzden her veri için hangi yöntemin en iyi olduğunu ölçmemiz gerekir.</p>
+$$\text{MSE} = \frac{1}{n}\sum_{i=1}^{n}\big(y_i - \hat f(x_i)\big)^2$$
+<p>Bu formül eğitim verisiyle hesaplanırsa <b>training MSE</b> olur. Ama bizi asıl ilgilendiren, modelin <b>daha önce görmediği</b> veride ne yaptığıdır (geçen haftanın hisse fiyatını değil, yarınkini tahmin etmek isteriz) → <b>test MSE</b>:</p>
+$$\text{Ave}\big(y_0 - \hat f(x_0)\big)^2 \quad (x_0, y_0 \text{ test gözlemleri})$$
+
+<div class="demo"><h4>Esneklik arttıkça Train MSE vs Test MSE</h4>
+<p class="hint">Polinom derecesini (esneklik) değiştir. Mavi noktalar train, turuncu halkalar test verisi. Sağdaki grafikte gri kesikli çizgi = azaltılamaz hata \(\operatorname{Var}(\varepsilon)\).</p>
+<div class="grid2"><canvas id="flexFit"></canvas><canvas id="flexMse"></canvas></div>
+<div class="ctrl"><label>Esneklik (polinom derecesi) <input id="deg" type="range" min="1" max="12" value="1"><output id="degO">1</output></label>
+<button class="b" id="newData">🎲 Yeni veri</button><button class="b p" id="playDeg">▶ Animasyon</button></div>
+<div class="stats"><div class="stat">Train MSE<b id="trM">–</b></div><div class="stat">Test MSE<b id="teM">–</b></div><div class="stat">Durum<b id="state">–</b></div></div>
+</div>
+<div class="box exam">
+<b>Klasik sınav grafiği:</b> Esneklik arttıkça <b>training MSE hep azalır</b> (monoton). <b>Test MSE ise U şeklindedir</b>: önce azalır, sonra artar. Küçük train MSE + büyük test MSE = <b>overfitting</b> (model gürültüyü ezberliyor). Çok basit model = <b>underfitting</b> (yüksek bias).
+</div>
+$$E\big(y_0-\hat f(x_0)\big)^2 = \operatorname{Var}\big(\hat f(x_0)\big) + \big[\operatorname{Bias}\big(\hat f(x_0)\big)\big]^2 + \operatorname{Var}(\varepsilon)$$
+<p><b>Bias–variance trade-off:</b> Esnek modellerin varyansı yüksek, bias'ı düşüktür; basit modellerin tersi. U şeklinin sebebi bu ikisinin toplamıdır.</p>
+
+<h2 id="split">Train / test ayırma (kod)</h2>
+<p>Elimizde ayrıca saklanmış test verisi genelde yoktur → veriyi rastgele böleriz (genelde %80 train / %20 test).</p>
+<pre><code>import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+
+df = pd.read_csv("Advertising.csv")
+X = df[["TV", "radio", "newspaper"]]
+y = df["sales"]
+
+# %80 train, %20 test — random_state tekrar üretilebilirlik için
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+model = LinearRegression().fit(X_train, y_train)   # SADECE train ile fit
+print("Train MSE:", mean_squared_error(y_train, model.predict(X_train)))
+print("Test  MSE:", mean_squared_error(y_test,  model.predict(X_test)))</code></pre>
+<div class="box warn"><b>Data leakage tuzağı:</b> Test verisi modeli eğitirken (veya ölçeklendirme gibi ön işlemlerde <code>fit</code> ederken) asla kullanılmamalı. Sonra "harika test skoru" aslında sahte olur.</div>
+
+<h2 id="quiz">Mini quiz</h2>
+<div class="quiz"><script type="application/json">[
+{"q":"Esneklik arttıkça training MSE nasıl değişir?","o":["U şeklinde","Monoton azalır","Monoton artar","Değişmez"],"a":1,"e":"Daha esnek model eğitim verisine hep daha iyi uyar; train MSE monoton azalır. U şekli test MSE'ye aittir."},
+{"q":"Bir bankada kredi kararlarını müşteriye açıklamak zorundasın. Hangi model daha uygundur?","o":["Derin sinir ağı","Random forest","Lineer / lojistik regresyon","SVM (RBF kernel)"],"a":2,"e":"Inference/açıklanabilirlik önemliyse kısıtlayıcı, yorumlanabilir modeller tercih edilir."},
+{"q":"Bir hastanın hayatta kalıp kalmayacağını tahmin etmek hangi problemdir?","o":["Regression","Classification","Clustering","Dimension reduction"],"a":1,"e":"Response nitel bir etiket (yaşıyor/ölü) → classification."},
+{"q":"\\(\\operatorname{Var}(\\varepsilon)\\) için hangisi doğru?","o":["Daha esnek modelle sıfırlanabilir","Daha çok veriyle sıfırlanabilir","Hiçbir modelle azaltılamaz","Sadece training MSE'yi etkiler"],"a":2,"e":"Irreducible error: test MSE'nin alt sınırıdır."},
+{"q":"Train MSE çok küçük, test MSE çok büyük. Bu nedir?","o":["Underfitting","Overfitting","Irreducible error","Bias"],"a":1,"e":"Model gürültüyü ezberlemiş: overfitting (yüksek varyans)."},
+{"q":"Müşteri verisinde etiket yok, benzer müşterileri gruplamak istiyoruz. Hangisi?","o":["Supervised regression","Supervised classification","Unsupervised learning","Logistic regression"],"a":2,"e":"Response yok → unsupervised (ör. clustering)."}
+]</script></div>
+</main></div>
+
+<script src="assets/app.js"></script>
+<script>
+// --- trade-off haritası ---
+(() => {
+  const cv = document.getElementById("tradeCv");
+  const M = [
+    ["Subset Selection / Lasso", 0.8, 9.2, "Çok kısıtlayıcı: sadece birkaç değişken kalır → çok yorumlanabilir."],
+    ["Least Squares (Lineer reg.)", 2.2, 7.6, "Düz çizgi/düzlem: katsayılar doğrudan yorumlanır (ör. radyo +1000$ → +189 satış)."],
+    ["Generalized Additive Models", 4.8, 5.0, "Her değişkene esnek eğri ama toplamsal → orta yorumlanabilirlik."],
+    ["Trees", 5.2, 4.4, "Kararlar ağacı okunabilir ama daha esnek."],
+    ["Bagging, Boosting", 8.0, 1.8, "Yüzlerce ağacın birleşimi: tahmin güçlü, yorum zor."],
+    ["Support Vector Machines", 8.8, 1.2, "Çok esnek sınırlar, kara kutuya yakın."],
+    ["Deep Learning", 9.5, 0.6, "En esnek, en zor yorumlanan."],
+  ];
+  const P = Plot(cv, 620, 340, [0, 10.4], [0, 10.4], 36);
+  let sel = -1;
+  function draw() {
+    P.clear();
+    const c = P.ctx;
+    c.fillStyle = css("--muted"); c.font = "12px system-ui";
+    c.fillText("Esneklik (flexibility) →", P.w - 170, P.h - 6);
+    c.fillText("↑ Yorumlanabilirlik", 40, 14);
+    M.forEach((m, i) => {
+      P.dot(m[1], m[2], i === sel ? css("--a2") : css("--accent"), i === sel ? 8 : 6);
+      const f = (i === sel ? "bold " : "") + "12px system-ui"; P.ctx.font = f; const tw = P.ctx.measureText(m[0]).width; const px = m[1] > 7 ? P.X(m[1]) - tw - 12 : P.X(m[1]) + 10; P.ctx.fillStyle = css("--ink"); P.ctx.fillText(m[0], px, P.Y(m[2]) + 4);
+    });
+  }
+  function pick(e) {
+    const [x, y] = P.evt(e);
+    let b = -1, d = 1e9;
+    M.forEach((m, i) => { const q = (m[1] - x) ** 2 + (m[2] - y) ** 2; if (q < d) { d = q; b = i; } });
+    if (d < 2.5 && b !== sel) { sel = b; draw(); document.getElementById("tradeInfo").innerHTML = `<b>${M[b][0]}</b> — ${M[b][3]}`; }
+  }
+  cv.addEventListener("pointermove", pick); cv.addEventListener("pointerdown", pick);
+  draw();
+})();
+
+// --- esneklik / MSE demosu ---
+(() => {
+  const f = (x) => Math.sin(1.4 * x) * 2 + 0.25 * x * x - 0.4 * x + 1; // gerçek f
+  const sd = 0.8;
+  let tr, te, seed = 3;
+  const xr = [-3, 3];
+  function gen() {
+    const r = rng(seed++);
+    const mk = (n) => Array.from({ length: n }, () => { const x = xr[0] + (xr[1] - xr[0]) * r(); return [x, f(x) + sd * randn(r)]; });
+    tr = mk(30); te = mk(200);
+  }
+  const mse = (g, D) => D.reduce((s, [x, y]) => s + (y - g(x)) ** 2, 0) / D.length;
+  const nx = (x) => x / 3; // ölçekleme (sayısal kararlılık)
+  const fitDeg = (d) => { const g = polyfit(tr.map((p) => nx(p[0])), tr.map((p) => p[1]), d); return (x) => g(nx(x)); };
+  const A = Plot(document.getElementById("flexFit"), 420, 300, xr, [-3, 6.5], 30);
+  const B = Plot(document.getElementById("flexMse"), 420, 300, [1, 12], [0, 4], 30);
+  const deg = document.getElementById("deg");
+  function draw() {
+    const d = +deg.value; document.getElementById("degO").textContent = d;
+    A.clear(); A.clip();
+    te.slice(0, 60).forEach(([x, y]) => { A.ctx.beginPath(); A.ctx.arc(A.X(x), A.Y(y), 3.5, 0, 7); A.ctx.strokeStyle = css("--a2"); A.ctx.lineWidth = 1.3; A.ctx.stroke(); });
+    tr.forEach(([x, y]) => A.dot(x, y, css("--accent"), 4.5));
+    A.fn(f, css("--muted"), 2, [5, 4]);
+    const g = fitDeg(d); A.fn(g, css("--good"), 3);
+    A.unclip();
+    A.text("— gerçek f (kesikli)   — f̂ (yeşil)", -2.9, 6.1, css("--muted"), "11px system-ui");
+    // MSE eğrileri
+    const trs = [], tes = [];
+    for (let k = 1; k <= 12; k++) { const h = fitDeg(k); trs.push(mse(h, tr)); tes.push(mse(h, te)); }
+    B.clear();
+    B.line(1, sd * sd, 12, sd * sd, css("--muted"), 1.5, [5, 4]);
+    const curve = (arr, c) => { B.ctx.beginPath(); B.ctx.strokeStyle = c; B.ctx.lineWidth = 2.5; arr.forEach((v, i) => { const y = Math.min(v, 4); i ? B.ctx.lineTo(B.X(i + 1), B.Y(y)) : B.ctx.moveTo(B.X(i + 1), B.Y(y)); }); B.ctx.stroke(); };
+    curve(trs, css("--accent")); curve(tes, css("--a2"));
+    B.dot(d, Math.min(trs[d - 1], 4), css("--accent"), 6, "#fff"); B.dot(d, Math.min(tes[d - 1], 4), css("--a2"), 6, "#fff");
+    B.text("Train MSE", 9.3, Math.min(trs[11], 4) + 0.25, css("--accent"), "bold 12px system-ui");
+    B.text("Test MSE", 9.3, Math.min(tes[11], 3.7) + 0.3, css("--a2"), "bold 12px system-ui");
+    B.text("Var(ε)", 1.1, sd * sd - 0.25, css("--muted"));
+    B.text("Esneklik →", 10, 0.15, css("--muted"), "11px system-ui");
+    document.getElementById("trM").textContent = trs[d - 1].toFixed(3);
+    document.getElementById("teM").textContent = tes[d - 1].toFixed(3);
+    const best = tes.indexOf(Math.min(...tes)) + 1;
+    document.getElementById("state").textContent = d < best - 1 ? "Underfit 📉" : d > best + 2 ? "Overfit 🎢" : "İyi denge ✅";
+  }
+  gen(); draw();
+  deg.oninput = draw;
+  document.getElementById("newData").onclick = () => { gen(); draw(); };
+  let t = null;
+  document.getElementById("playDeg").onclick = (e) => {
+    if (t) { clearInterval(t); t = null; e.target.textContent = "▶ Animasyon"; return; }
+    deg.value = 1; draw(); e.target.textContent = "⏸ Durdur";
+    t = setInterval(() => { if (+deg.value >= 12) { clearInterval(t); t = null; e.target.textContent = "▶ Animasyon"; return; } deg.value = +deg.value + 1; draw(); }, 700);
+  };
+})();
+</script>
+</body></html>

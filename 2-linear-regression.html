@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2 · Lineer Regresyon — DAB Çalışma</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+<div class="wrap"><aside class="toc"></aside><main>
+<span class="tag">Hafta 2</span>
+<h1>Lineer Regresyon</h1>
+<p class="lead">Supervised learning'in en basit ama en önemli yöntemi. Birçok "havalı" yöntem aslında lineer regresyonun genellemesi — burayı iyi anlamak her şeyin temeli.</p>
+
+<h2 id="adv">Motivasyon: Advertising verisi</h2>
+<p>200 farklı pazarda bir ürünün <b>satışları</b> (<code>sales</code>, bin adet) ve üç kanaldaki reklam bütçeleri (<code>TV</code>, <code>radio</code>, <code>newspaper</code>, bin $). Cevaplamak istediğimiz sorular:</p>
+<ol><li>Reklam bütçesi ile satış arasında <b>ilişki var mı</b>?</li><li>İlişki <b>ne kadar güçlü</b>?</li><li><b>Hangi kanallar</b> satışa katkı yapıyor?</li><li>Her kanalın etkisini ne kadar <b>doğru</b> tahmin ediyoruz?</li><li>Gelecekteki satışları ne kadar doğru <b>tahmin</b> ederiz?</li><li>İlişki <b>lineer</b> mi?</li><li>Kanallar arasında <b>sinerji</b> (etkileşim) var mı?</li></ol>
+
+<h2 id="slr">Basit lineer regresyon</h2>
+$$Y \approx \beta_0 + \beta_1 X \qquad\text{ör. } \texttt{sales} \approx \beta_0 + \beta_1\,\texttt{TV}$$
+<p>\(\beta_0\) = <b>intercept</b> (X=0 iken beklenen Y), \(\beta_1\) = <b>slope</b> (X 1 birim artınca Y'deki ortalama değişim). Bunlar bilinmiyor; veriden \(\hat\beta_0, \hat\beta_1\) tahmin edip \(\hat y = \hat\beta_0 + \hat\beta_1 x\) ile tahmin yaparız.</p>
+
+<h3>Katsayıları tahmin etmek: Least Squares</h3>
+<p>\(i\). <b>residual</b>: \(e_i = y_i - \hat y_i\). Residual sum of squares:</p>
+$$\text{RSS} = e_1^2 + \dots + e_n^2 = \sum_{i=1}^n \big(y_i - \hat\beta_0 - \hat\beta_1 x_i\big)^2$$
+<p>RSS'i minimize eden değerler (türev alıp sıfıra eşitleyerek):</p>
+$$\hat\beta_1 = \frac{\sum_{i=1}^n (x_i-\bar x)(y_i-\bar y)}{\sum_{i=1}^n (x_i-\bar x)^2}, \qquad \hat\beta_0 = \bar y - \hat\beta_1 \bar x$$
+<div class="box">Advertising (sales ~ TV): \(\hat\beta_0 = 7.03,\ \hat\beta_1 = 0.0475\). Yorum: TV'ye <b>+1000$</b> ek harcama → ortalama <b>+47.5 adet</b> satış.</div>
+
+<div class="demo"><h4>Least squares'i elle bul</h4>
+<p class="hint">Noktaları <b>sürükle</b>, boş yere dokunarak <b>nokta ekle</b>. Kaydırıcılarla kendi doğrunu ayarla ve RSS'i OLS'den daha küçük yapmaya çalış (yapamazsın 😉). Kareler = residual²'ler.</p>
+<canvas id="olsCv"></canvas>
+<div class="ctrl"><label>Senin β₀ <input id="ub0" type="range" min="-4" max="8" step="0.05" value="1"><output id="ub0o"></output></label>
+<label>Senin β₁ <input id="ub1" type="range" min="-1.5" max="2.5" step="0.01" value="0.3"><output id="ub1o"></output></label>
+<label><input type="checkbox" id="showSq" checked> kareleri göster</label>
+<button class="b" id="olsSnap">OLS'ye yapıştır</button><button class="b" id="olsReset">Sıfırla</button></div>
+<div class="stats"><div class="stat">Senin RSS<b id="uRss">–</b></div><div class="stat">OLS RSS (minimum)<b id="oRss">–</b></div><div class="stat">OLS denklemi<b id="oEq">–</b></div><div class="stat">R²<b id="oR2">–</b></div></div>
+</div>
+
+<h2 id="gd">Gradient Descent</h2>
+<p>Aynı minimizasyon problemi <b>iteratif</b> olarak da çözülebilir. Gradient descent genel amaçlı bir optimizasyon algoritmasıdır.</p>
+<div class="box">🧑‍🦯 <b>Sezgi:</b> Gözleri kapalı biri vadide, vadinin dibine inmek istiyor. Etrafını yokluyor, aşağı doğru olan yöne bir adım atıyor; tekrar yokluyor, tekrar adım atıyor… Hiçbir yön aşağı gitmeyene kadar devam ediyor.</div>
+<p>SSE (=RSS) fonksiyonunun kısmi türevleri:</p>
+$$\frac{\partial\,\text{SSE}}{\partial \beta_0} = -2\sum_{i}\big(y_i - \beta_0 - \beta_1 x_i\big), \qquad \frac{\partial\,\text{SSE}}{\partial \beta_1} = -2\sum_{i} x_i\big(y_i - \beta_0 - \beta_1 x_i\big)$$
+<p>Güncelleme kuralı (\(\alpha\) = <b>learning rate</b>, adım büyüklüğü):</p>
+$$\beta_j \leftarrow \beta_j - \alpha\,\frac{\partial\,\text{SSE}}{\partial \beta_j}$$
+<ol><li>Parametreleri rastgele başlat</li><li>Mevcut parametrelerle SSE'yi hesapla</li><li>Gradyanları hesapla</li><li>Parametreleri gradyanlarla güncelle</li><li>2–4'ü tekrarla (yakınsayana kadar)</li></ol>
+
+<div class="demo"><h4>Gradient descent animasyonu</h4>
+<p class="hint">Sol: SSE yüzeyinin "kontur haritası" (koyu = düşük hata), top = mevcut \((\beta_0,\beta_1)\). Sağ: o anki doğru. Başlangıç noktasını değiştirmek için sol grafiğe <b>dokun</b>. Learning rate'i büyütüp ıraksamayı (zikzak/patlama) gör!</p>
+<div class="grid2"><canvas id="gdSurf"></canvas><canvas id="gdLine"></canvas></div>
+<div class="ctrl"><label>Learning rate α <input id="lr" type="range" min="-3.3" max="-1.6" step="0.05" value="-2.4"><output id="lro"></output></label>
+<button class="b p" id="gdPlay">▶ Başlat</button><button class="b" id="gdStep">+1 adım</button><button class="b" id="gdReset">Sıfırla</button></div>
+<div class="stats"><div class="stat">İterasyon<b id="gdIt">0</b></div><div class="stat">β₀<b id="gdB0">–</b></div><div class="stat">β₁<b id="gdB1">–</b></div><div class="stat">SSE<b id="gdSse">–</b></div></div>
+</div>
+<pre><code>import numpy as np
+
+def gradient_descent(x, y, lr=0.001, n_iter=5000):
+    b0, b1 = np.random.randn(2)               # 1) rastgele başlat
+    for _ in range(n_iter):
+        y_hat = b0 + b1 * x
+        resid = y - y_hat
+        sse = np.sum(resid ** 2)               # 2) SSE
+        g0 = -2 * np.sum(resid)                # 3) gradyanlar
+        g1 = -2 * np.sum(x * resid)
+        b0 -= lr * g0                          # 4) güncelle
+        b1 -= lr * g1
+    return b0, b1, sse
+
+# Kapalı form ile karşılaştır
+b1_ols = np.sum((x - x.mean()) * (y - y.mean())) / np.sum((x - x.mean()) ** 2)
+b0_ols = y.mean() - b1_ols * x.mean()</code></pre>
+<div class="box exam">α çok küçük → çok yavaş yakınsar. α çok büyük → minimumun üstünden atlar, <b>ıraksar</b>. X'leri <b>ölçeklemek</b> (standardize) gradient descent'i çok hızlandırır.</div>
+
+<h2 id="acc-coef">Katsayıların doğruluğu</h2>
+<p>Gerçek ilişki \(Y = \beta_0 + \beta_1 X + \varepsilon\) → bu <b>population regression line</b>. Elimizdeki örnekten bulduğumuz ise <b>least squares line</b>. Farklı örnekler farklı LS doğruları verir ama population doğrusu değişmez (örneklemden popülasyon ortalamasını tahmin etmeye benzer: \(\bar y\) ≈ \(\mu\)).</p>
+<div class="demo"><h4>Aynı modelden 10 farklı veri seti</h4>
+<p class="hint">Kırmızı = gerçek (population) doğru \(Y = 2 + 3X + \varepsilon\). Her basışta yeni bir örneklem çekilip LS doğrusu (mavi) çizilir.</p>
+<canvas id="popCv"></canvas>
+<div class="ctrl"><button class="b p" id="popAdd">+ Yeni örneklem</button><button class="b" id="popTen">10 tane çek</button><button class="b" id="popClr">Temizle</button>
+<label>n <input id="popN" type="range" min="10" max="200" step="10" value="50"><output id="popNo"></output></label></div>
+<div class="stats"><div class="stat">Çekilen<b id="popK">0</b></div><div class="stat">β̂₁ ortalaması<b id="popMean">–</b></div><div class="stat">β̂₁ std (≈ SE)<b id="popSd">–</b></div></div>
+</div>
+<p><b>Standard error</b> formülleri (\(\sigma^2 = \operatorname{Var}(\varepsilon)\)):</p>
+$$\operatorname{SE}(\hat\beta_0)^2 = \sigma^2\left[\frac1n + \frac{\bar x^2}{\sum (x_i-\bar x)^2}\right], \qquad \operatorname{SE}(\hat\beta_1)^2 = \frac{\sigma^2}{\sum (x_i - \bar x)^2}$$
+<p>\(\sigma\) bilinmez, <b>RSE</b> ile tahmin edilir. %95 güven aralığı: \(\hat\beta_1 \pm 2\cdot\operatorname{SE}(\hat\beta_1)\).</p>
+<p><b>Hipotez testi:</b> \(H_0: \beta_1 = 0\) (X ile Y arasında ilişki yok) vs \(H_a: \beta_1 \neq 0\).</p>
+$$t = \frac{\hat\beta_1 - 0}{\operatorname{SE}(\hat\beta_1)}$$
+<p>|t| büyük → p-value küçük → \(H_0\) reddedilir → ilişki var.</p>
+<div class="tw"><table><tr><th>sales ~ TV</th><th>Coefficient</th><th>Std. error</th><th>t-statistic</th><th>p-value</th></tr>
+<tr><td>Intercept</td><td>7.0325</td><td>0.4578</td><td>15.36</td><td>&lt; 0.0001</td></tr>
+<tr><td>TV</td><td>0.0475</td><td>0.0027</td><td>17.67</td><td>&lt; 0.0001</td></tr></table></div>
+
+<h2 id="acc-model">Modelin doğruluğu: RSE ve R²</h2>
+$$\text{RSE} = \sqrt{\frac{\text{RSS}}{n-2}}, \qquad R^2 = \frac{\text{TSS}-\text{RSS}}{\text{TSS}} = 1-\frac{\text{RSS}}{\text{TSS}}, \qquad \text{TSS}=\sum (y_i-\bar y)^2$$
+<ul><li><b>RSE</b>: Y'nin birimiyle, ortalama sapma (lack of fit). TV modeli için RSE = 3.26 → satışlar gerçek regresyon doğrusundan ortalama ~3260 adet sapıyor.</li>
+<li><b>R²</b>: Y'deki varyansın modelce açıklanan oranı, 0–1 arası, birimsiz. TV modeli: R² = 0.61.</li>
+<li>Basit lineer regresyonda \(R^2 = r^2\) (korelasyonun karesi).</li></ul>
+
+<h3>Diğer performans ölçüleri</h3>
+<div class="tw"><table><tr><th>Ölçü</th><th>Formül</th><th>Not</th></tr>
+<tr><td>MSE</td><td>\(\frac1n\sum (y_i-\hat y_i)^2\)</td><td>Büyük hataları çok cezalandırır</td></tr>
+<tr><td>RMSE</td><td>\(\sqrt{\text{MSE}}\)</td><td>Y'nin biriminde</td></tr>
+<tr><td>MAE</td><td>\(\frac1n\sum |y_i-\hat y_i|\)</td><td>Outlier'a daha dayanıklı</td></tr>
+<tr><td>MAPE</td><td>\(\frac{100}{n}\sum \left|\frac{y_i-\hat y_i}{y_i}\right|\)</td><td>Yüzde hata; \(y_i\approx0\) iken sorunlu</td></tr>
+<tr><td>R²</td><td>\(1-\text{RSS}/\text{TSS}\)</td><td>Açıklanan varyans oranı</td></tr></table></div>
+
+<h2 id="mlr">Çoklu lineer regresyon</h2>
+<p>Üç ayrı basit regresyon yapmak iki sebeple kötü: (1) üç bütçe birlikte verildiğinde <b>tek bir tahmin</b> nasıl yapılır belli değil, (2) her denklem diğer kanalları <b>yok sayar</b> → kanallar korelasyonluysa yanıltıcı sonuçlar.</p>
+$$Y = \beta_0 + \beta_1X_1 + \beta_2X_2 + \dots + \beta_pX_p + \varepsilon$$
+<p>\(\beta_j\): <b>diğer tüm değişkenler sabitken</b> \(X_j\)'deki 1 birim artışın Y'ye ortalama etkisi. Yine RSS minimize edilir; matris formunda:</p>
+$$\hat{\boldsymbol\beta} = (\mathbf X^\top \mathbf X)^{-1}\mathbf X^\top \mathbf y$$
+<p>İki predictor varsa doğru yerine bir <b>düzlem</b> fit edilir; düzlem, gözlemlerle arasındaki dikey uzaklıkların karelerinin toplamını minimize eder.</p>
+<div class="tw"><table><tr><th>sales ~ TV + radio + newspaper</th><th>Coefficient</th><th>Std. error</th><th>t</th><th>p-value</th></tr>
+<tr><td>Intercept</td><td>2.939</td><td>0.3119</td><td>9.42</td><td>&lt; 0.0001</td></tr>
+<tr><td>TV</td><td>0.046</td><td>0.0014</td><td>32.81</td><td>&lt; 0.0001</td></tr>
+<tr><td>radio</td><td>0.189</td><td>0.0086</td><td>21.89</td><td>&lt; 0.0001</td></tr>
+<tr><td>newspaper</td><td>−0.001</td><td>0.0059</td><td>−0.18</td><td>0.8599</td></tr></table></div>
+<div class="box exam"><b>Yorum kalıbı:</b> "TV ve newspaper harcaması sabitken, radyoya +1000$ → satışlarda yaklaşık <b>+189 adet</b>." <br><b>Newspaper paradoksu:</b> Tek başına regresyonda newspaper anlamlı (β̂ = 0.055) çıkıyor ama çoklu modelde anlamsız (p = 0.86). Sebep: newspaper ile radio <b>korelasyonlu</b> (r ≈ 0.35). Radyo reklamı çok olan pazarlarda gazete de çok → gazete, radyonun etkisinin "kredisini alıyor".</div>
+<p><b>En az bir predictor işe yarıyor mu?</b> \(H_0: \beta_1=\dots=\beta_p=0\) → <b>F-istatistiği</b>:</p>
+$$F = \frac{(\text{TSS}-\text{RSS})/p}{\text{RSS}/(n-p-1)}$$
+<p>H₀ doğruysa F ≈ 1; F ≫ 1 ise en az bir değişken anlamlı (Advertising: F = 570).</p>
+
+<h2 id="qual">Nitel (qualitative) predictor'lar</h2>
+<p>Ör. Credit verisinde <code>own</code> (ev sahibi mi?) iki seviyeli → <b>dummy variable</b>:</p>
+$$x_i = \begin{cases}1 & \text{ev sahibi}\\0 & \text{değil}\end{cases} \Rightarrow y_i = \beta_0 + \beta_1 x_i + \varepsilon_i$$
+<p>\(\beta_0\) = ev sahibi olmayanların ortalama bakiyesi, \(\beta_0+\beta_1\) = ev sahiplerinin ortalaması, \(\beta_1\) = aradaki fark. <b>k seviye → k−1 dummy</b> (biri "baseline" olur; k tane koyarsak mükemmel çoklu doğrusallık = <i>dummy variable trap</i>).</p>
+<pre><code>import pandas as pd
+# region: East / West / South  ->  2 dummy (East baseline)
+X = pd.get_dummies(df[["income", "region"]], drop_first=True)</code></pre>
+
+<h2 id="poly">Lineer olmayan ilişki: Polinom regresyon</h2>
+<p>Auto verisi: <code>mpg</code> ~ <code>horsepower</code> ilişkisi eğri görünüyor. Çözüm: predictor'ın dönüştürülmüş halini modele eklemek.</p>
+$$\texttt{mpg} = \beta_0 + \beta_1 \cdot \texttt{hp} + \beta_2 \cdot \texttt{hp}^2 + \varepsilon$$
+<div class="box">Bu hâlâ bir <b>lineer</b> modeldir! Çünkü <b>katsayılara göre</b> lineer: \(X_1 = \texttt{hp}, X_2 = \texttt{hp}^2\) diyip normal çoklu regresyon yapıyoruz. R²: 0.606 → 0.688.</div>
+<div class="demo"><h4>Derece arttıkça ne olur?</h4>
+<p class="hint">hp², hp³ … hp¹⁰? Dereceyi arttır: eğri veriye daha çok "yapışır" ama uçlarda saçmalamaya başlar → <b>overfitting</b>.</p>
+<canvas id="polyCv"></canvas>
+<div class="ctrl"><label>Derece <input id="pdeg" type="range" min="1" max="10" value="1"><output id="pdego"></output></label><button class="b" id="pNew">🎲 Yeni veri</button></div>
+<div class="stats"><div class="stat">Train R²<b id="pR2">–</b></div><div class="stat">Test MSE<b id="pTe">–</b></div></div>
+</div>
+
+<h2 id="code">Python: sınavda çıkabilecek kodlar</h2>
+<details open><summary>Scikit-learn ile basit & çoklu regresyon</summary>
+<pre><code>import pandas as pd
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+
+df = pd.read_csv("Advertising.csv")
+
+# Basit: sales ~ TV
+X = df[["TV"]]                 # 2 boyutlu olmalı -> çift köşeli parantez!
+y = df["sales"]
+slr = LinearRegression().fit(X, y)
+print(slr.intercept_, slr.coef_)          # ~7.03, [0.0475]
+
+# Çoklu: sales ~ TV + radio + newspaper
+X = df[["TV", "radio", "newspaper"]]
+mlr = LinearRegression().fit(X, y)
+print(dict(zip(X.columns, mlr.coef_)))    # TV .046, radio .189, newspaper -.001
+y_hat = mlr.predict(X)
+print("R2:", r2_score(y, y_hat), "MSE:", mean_squared_error(y, y_hat))
+
+# Yeni gözlem için tahmin
+new = pd.DataFrame({"TV": [100], "radio": [20], "newspaper": [10]})
+print(mlr.predict(new))</code></pre></details>
+<details><summary>Statsmodels ile SE, t, p-value, R², F (özet tablo)</summary>
+<pre><code>import statsmodels.formula.api as smf
+
+model = smf.ols("sales ~ TV + radio + newspaper", data=df).fit()
+print(model.summary())      # coef, std err, t, P>|t|, R-squared, F-statistic
+print(model.params, model.pvalues, model.rsquared)
+print(model.conf_int())     # %95 güven aralıkları</code></pre>
+<p style="font-size:14px;color:var(--muted)">Scikit-learn p-value vermez; istatistiksel çıkarım için statsmodels kullanılır.</p></details>
+<details><summary>NumPy ile kapalı form (normal denklemler)</summary>
+<pre><code>import numpy as np
+X = np.column_stack([np.ones(len(df)), df[["TV", "radio", "newspaper"]].values])
+y = df["sales"].values
+beta = np.linalg.inv(X.T @ X) @ X.T @ y     # (X'X)^-1 X'y
+rss = np.sum((y - X @ beta) ** 2)
+tss = np.sum((y - y.mean()) ** 2)
+print(beta, "R2 =", 1 - rss / tss)</code></pre></details>
+<details><summary>Polinom regresyon</summary>
+<pre><code>from sklearn.preprocessing import PolynomialFeatures
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+auto = pd.read_csv("Auto.csv").dropna()
+X, y = auto[["horsepower"]], auto["mpg"]
+for d in [1, 2, 5]:
+    m = make_pipeline(PolynomialFeatures(degree=d, include_bias=False), StandardScaler(), LinearRegression())
+    m.fit(X, y)
+    print(d, r2_score(y, m.predict(X)))
+
+# statsmodels ile: mpg ~ hp + hp^2
+smf.ols("mpg ~ horsepower + I(horsepower**2)", data=auto).fit().summary()</code></pre></details>
+
+<h2 id="quiz">Mini quiz</h2>
+<div class="quiz"><script type="application/json">[
+{"q":"\\(\\hat\\beta_1 = 0.0475\\) (sales ~ TV, sales bin adet, TV bin $). Doğru yorum?","o":["TV'ye 1$ → 0.0475 adet","TV'ye 1000$ → ~47.5 adet satış artışı","Satışın %4.75'i TV'den","TV=0 iken satış 0.0475"],"a":1,"e":"Birimlere dikkat: X bin $, Y bin adet → 1 birim X (1000$) → 0.0475×1000 = 47.5 adet."},
+{"q":"Least squares neyi minimize eder?","o":["\\(\\sum|e_i|\\)","\\(\\sum e_i\\)","\\(\\sum e_i^2\\) (RSS)","max \\(|e_i|\\)"],"a":2,"e":"RSS = residual'ların kareleri toplamı."},
+{"q":"Gradient descent'te learning rate çok büyük seçilirse?","o":["Daha doğru sonuç","Minimumun üstünden atlayıp ıraksayabilir","Hiç değişmez","Kapalı formdan hızlı her zaman"],"a":1,"e":"Büyük α → zikzak ve patlama; küçük α → çok yavaş."},
+{"q":"Çoklu regresyonda newspaper'ın p-value'su 0.86 ama tek başına anlamlıydı. Sebep?","o":["Hesaplama hatası","Newspaper ile radio korelasyonlu","Newspaper'ın varyansı sıfır","n çok küçük"],"a":1,"e":"Korelasyonlu predictor'lar: tek başına modelde gazete, radyonun etkisini 'taşıyor'."},
+{"q":"mpg = β0 + β1·hp + β2·hp² modeli için hangisi doğru?","o":["Lineer olmayan bir modeldir, OLS ile çözülemez","Katsayılarda lineer olduğu için lineer regresyondur","Lojistik regresyondur","Sadece gradient descent ile çözülür"],"a":1,"e":"X₂ = hp² dönüşümü ile normal çoklu lineer regresyon."},
+{"q":"4 seviyeli bir kategorik değişken için kaç dummy gerekir?","o":["1","3","4","8"],"a":1,"e":"k−1 = 3; biri baseline."},
+{"q":"R² = 0.61 ne demek?","o":["Tahminler %61 doğru","Y'deki varyansın %61'i model tarafından açıklanıyor","Korelasyon 0.61","Hata %39"],"a":1,"e":"R² = 1 − RSS/TSS: açıklanan varyans oranı. (Basit LR'de r = √0.61 ≈ 0.78.)"},
+{"q":"\\(H_0: \\beta_1 = 0\\) testinde t = 17.67 çıktı. Sonuç?","o":["H₀ kabul, ilişki yok","H₀ reddedilir, X ile Y arasında ilişki var","Model overfit","β₁ = 17.67"],"a":1,"e":"|t| çok büyük → p ≈ 0 → H₀ reddedilir."}
+]</script></div>
+</main></div>
+
+<script src="assets/app.js"></script>
+<script>
+// ===== OLS sürükle-bırak =====
+(() => {
+  const cv = document.getElementById("olsCv");
+  const P = Plot(cv, 680, 360, [0, 10], [-2, 12], 34);
+  const base = [[1, 2.2], [2, 3.1], [3, 2.8], [4, 5.2], [5, 4.6], [6, 6.9], [7, 6.4], [8, 8.8], [9, 8.1]];
+  let pts = base.map((p) => p.slice()), drag = -1;
+  const ub0 = document.getElementById("ub0"), ub1 = document.getElementById("ub1"), sq = document.getElementById("showSq");
+  const ols = () => {
+    const n = pts.length, mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
+    let sxy = 0, sxx = 0; pts.forEach(([x, y]) => { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; });
+    const b1 = sxx ? sxy / sxx : 0; return [my - b1 * mx, b1, my];
+  };
+  const rss = (b0, b1) => pts.reduce((s, [x, y]) => s + (y - b0 - b1 * x) ** 2, 0);
+  function draw() {
+    const [b0, b1, my] = ols(), u0 = +ub0.value, u1 = +ub1.value;
+    document.getElementById("ub0o").textContent = u0.toFixed(2);
+    document.getElementById("ub1o").textContent = u1.toFixed(2);
+    P.clear(); P.clip();
+    const c = P.ctx;
+    if (sq.checked) pts.forEach(([x, y]) => {
+      const yh = u0 + u1 * x, side = Math.abs(P.Y(y) - P.Y(yh));
+      c.fillStyle = "rgba(232,89,12,.13)"; c.strokeStyle = "rgba(232,89,12,.5)"; c.lineWidth = 1;
+      const px = P.X(x), top = Math.min(P.Y(y), P.Y(yh));
+      c.fillRect(px, top, side, side); c.strokeRect(px, top, side, side);
+    });
+    pts.forEach(([x, y]) => P.line(x, y, x, u0 + u1 * x, css("--a2"), 1.5));
+    P.fn((x) => b0 + b1 * x, css("--good"), 2.5, [6, 4]);
+    P.fn((x) => u0 + u1 * x, css("--a2"), 3);
+    pts.forEach(([x, y]) => P.dot(x, y, css("--accent"), 6, "#fff"));
+    P.unclip();
+    P.text("— senin doğrun", 0.2, 11.3, css("--a2"), "bold 12px system-ui");
+    P.text("- - OLS doğrusu", 0.2, 10.4, css("--good"), "bold 12px system-ui");
+    const r = rss(b0, b1), tss = pts.reduce((s, p) => s + (p[1] - my) ** 2, 0);
+    document.getElementById("uRss").textContent = rss(u0, u1).toFixed(2);
+    document.getElementById("oRss").textContent = r.toFixed(2);
+    document.getElementById("oEq").textContent = `ŷ = ${b0.toFixed(2)} + ${b1.toFixed(3)}x`;
+    document.getElementById("oR2").textContent = tss ? (1 - r / tss).toFixed(3) : "–";
+  }
+  cv.addEventListener("pointerdown", (e) => {
+    const [x, y] = P.evt(e);
+    drag = pts.findIndex((p) => Math.hypot(P.X(p[0]) - P.X(x), P.Y(p[1]) - P.Y(y)) < 14);
+    if (drag < 0 && x > 0 && x < 10 && y > -2 && y < 12) { pts.push([x, y]); drag = pts.length - 1; }
+    cv.setPointerCapture(e.pointerId); draw();
+  });
+  cv.addEventListener("pointermove", (e) => { if (drag < 0) return; const [x, y] = P.evt(e); pts[drag] = [Math.max(0, Math.min(10, x)), Math.max(-2, Math.min(12, y))]; draw(); });
+  cv.addEventListener("pointerup", () => (drag = -1));
+  ub0.oninput = ub1.oninput = sq.onchange = draw;
+  document.getElementById("olsSnap").onclick = () => {
+    const [b0, b1] = ols(); const s0 = +ub0.value, s1 = +ub1.value; let k = 0;
+    const t = setInterval(() => { k++; const a = k / 20; ub0.value = s0 + (b0 - s0) * a; ub1.value = s1 + (b1 - s1) * a; draw(); if (k >= 20) clearInterval(t); }, 25);
+  };
+  document.getElementById("olsReset").onclick = () => { pts = base.map((p) => p.slice()); ub0.value = 1; ub1.value = 0.3; draw(); };
+  draw();
+})();
+
+// ===== Gradient descent =====
+(() => {
+  const r = rng(11); const xs = [], ys = [];
+  for (let i = 0; i < 40; i++) { const x = r() * 4 - 2; xs.push(x); ys.push(1 + 2 * x + randn(r) * 0.8); }
+  const sse = (b0, b1) => xs.reduce((s, x, i) => s + (ys[i] - b0 - b1 * x) ** 2, 0);
+  const S = Plot(document.getElementById("gdSurf"), 420, 340, [-4, 6], [-3, 7], 30);
+  const L = Plot(document.getElementById("gdLine"), 420, 340, [-2.2, 2.2], [-5, 7], 30);
+  // kontur arka planı (bir kez)
+  const bg = document.createElement("canvas"); bg.width = 420; bg.height = 340;
+  const bctx = bg.getContext("2d"), img = bctx.createImageData(420, 340);
+  let mx = 0; const vals = [];
+  for (let py = 0; py < 340; py++) for (let px = 0; px < 420; px++) { const v = Math.log(sse(S.ix(px), S.iy(py))); vals.push(v); mx = Math.max(mx, v); }
+  let mn = Infinity; for (const v of vals) if (v < mn) mn = v;
+  vals.forEach((v, k) => {
+    const t = (v - mn) / (mx - mn), band = Math.floor(t * 14) % 2;
+    img.data[4 * k] = 47 + 200 * t; img.data[4 * k + 1] = 91 + 120 * t - band * 12; img.data[4 * k + 2] = 234 - 60 * t; img.data[4 * k + 3] = 130 + band * 25;
+  });
+  bctx.putImageData(img, 0, 0);
+  let b = [-3, 6], path = [], it = 0, timer = null;
+  const lr = document.getElementById("lr");
+  const alpha = () => Math.pow(10, +lr.value);
+  function step() {
+    let g0 = 0, g1 = 0; xs.forEach((x, i) => { const e = ys[i] - b[0] - b[1] * x; g0 += -2 * e; g1 += -2 * x * e; });
+    b = [b[0] - alpha() * g0, b[1] - alpha() * g1]; it++; path.push(b.slice());
+    if (!isFinite(b[0]) || Math.abs(b[0]) > 1e6) { stop(); }
+  }
+  function draw() {
+    document.getElementById("lro").textContent = alpha().toPrecision(2);
+    S.ctx.clearRect(0, 0, 420, 340); S.ctx.drawImage(bg, 0, 0, 420, 340);
+    S.ctx.fillStyle = css("--ink"); S.ctx.font = "12px system-ui"; S.ctx.fillText("β₀ →", 380, 330); S.ctx.fillText("β₁ ↑", 34, 14);
+    S.clip();
+    S.ctx.beginPath(); S.ctx.strokeStyle = "#fff"; S.ctx.lineWidth = 2;
+    path.forEach((p, i) => (i ? S.ctx.lineTo(S.X(p[0]), S.Y(p[1])) : S.ctx.moveTo(S.X(p[0]), S.Y(p[1])))); S.ctx.stroke();
+    path.forEach((p) => S.dot(p[0], p[1], "#fff", 2.5));
+    S.dot(b[0], b[1], css("--a2"), 7, "#fff");
+    S.unclip();
+    L.clear(); L.clip();
+    xs.forEach((x, i) => L.dot(x, ys[i], css("--accent"), 4));
+    L.fn((x) => b[0] + b[1] * x, css("--a2"), 3); L.unclip();
+    const ok = isFinite(b[0]);
+    document.getElementById("gdIt").textContent = it;
+    document.getElementById("gdB0").textContent = ok ? b[0].toFixed(3) : "∞ 💥";
+    document.getElementById("gdB1").textContent = ok ? b[1].toFixed(3) : "∞ 💥";
+    document.getElementById("gdSse").textContent = ok ? sse(b[0], b[1]).toFixed(1) : "ıraksadı!";
+  }
+  const btn = document.getElementById("gdPlay");
+  function stop() { clearInterval(timer); timer = null; btn.textContent = "▶ Başlat"; }
+  function reset(start) { stop(); b = start || [-3, 6]; path = [b.slice()]; it = 0; draw(); }
+  btn.onclick = () => { if (timer) return stop(); btn.textContent = "⏸ Durdur"; timer = setInterval(() => { step(); draw(); if (it > 300) stop(); }, 60); };
+  document.getElementById("gdStep").onclick = () => { step(); draw(); };
+  document.getElementById("gdReset").onclick = () => reset();
+  lr.oninput = draw;
+  document.getElementById("gdSurf").addEventListener("pointerdown", (e) => reset(S.evt(e)));
+  reset();
+})();
+
+// ===== Population vs LS doğruları =====
+(() => {
+  const P = Plot(document.getElementById("popCv"), 680, 320, [-2, 2], [-10, 14], 34);
+  let lines = [], last = null, seed = 100;
+  const nIn = document.getElementById("popN");
+  function sample() {
+    const r = rng(seed++), n = +nIn.value, pts = [];
+    for (let i = 0; i < n; i++) { const x = r() * 4 - 2; pts.push([x, 2 + 3 * x + randn(r) * 3]); }
+    const mx = pts.reduce((s, p) => s + p[0], 0) / n, my = pts.reduce((s, p) => s + p[1], 0) / n;
+    let a = 0, c = 0; pts.forEach(([x, y]) => { a += (x - mx) * (y - my); c += (x - mx) ** 2; });
+    const b1 = a / c; lines.push([my - b1 * mx, b1]); last = pts;
+  }
+  function draw() {
+    document.getElementById("popNo").textContent = nIn.value;
+    P.clear(); P.clip();
+    if (last) last.forEach(([x, y]) => P.dot(x, y, css("--muted"), 2.5));
+    lines.forEach(([b0, b1], i) => P.fn((x) => b0 + b1 * x, i === lines.length - 1 ? css("--accent") : "rgba(47,91,234,.35)", i === lines.length - 1 ? 2.5 : 1.5));
+    P.fn((x) => 2 + 3 * x, css("--bad"), 3); P.unclip();
+    const bs = lines.map((l) => l[1]), m = bs.reduce((s, v) => s + v, 0) / (bs.length || 1);
+    const sd = Math.sqrt(bs.reduce((s, v) => s + (v - m) ** 2, 0) / Math.max(1, bs.length - 1));
+    document.getElementById("popK").textContent = lines.length;
+    document.getElementById("popMean").textContent = bs.length ? m.toFixed(3) + " (gerçek 3)" : "–";
+    document.getElementById("popSd").textContent = bs.length > 1 ? sd.toFixed(3) : "–";
+  }
+  document.getElementById("popAdd").onclick = () => { sample(); draw(); };
+  document.getElementById("popTen").onclick = () => { let k = 0; const t = setInterval(() => { sample(); draw(); if (++k >= 10) clearInterval(t); }, 180); };
+  document.getElementById("popClr").onclick = () => { lines = []; last = null; draw(); };
+  nIn.oninput = () => { lines = []; last = null; draw(); };
+  draw();
+})();
+
+// ===== Polinom (mpg ~ hp benzeri) =====
+(() => {
+  const P = Plot(document.getElementById("polyCv"), 680, 320, [40, 230], [5, 48], 34);
+  const g = (hp) => 57 - 0.47 * hp + 0.0012 * hp * hp;
+  let tr, te, seed = 5;
+  function gen() { const r = rng(seed++); const mk = (n) => Array.from({ length: n }, () => { const x = 46 + 180 * Math.pow(r(), 1.4); return [x, g(x) + randn(r) * 3.6]; }); tr = mk(45); te = mk(300); }
+  const z = (x) => (x - 135) / 95;
+  function draw() {
+    const d = +document.getElementById("pdeg").value; document.getElementById("pdego").textContent = d;
+    const f0 = polyfit(tr.map((p) => z(p[0])), tr.map((p) => p[1]), d), f = (x) => f0(z(x));
+    P.clear(); P.clip();
+    tr.forEach(([x, y]) => P.dot(x, y, css("--accent"), 4));
+    P.fn(f, css("--a2"), 3); P.unclip();
+    P.text("horsepower →", 195, 7, css("--muted")); P.text("mpg", 42, 46, css("--muted"));
+    const my = tr.reduce((s, p) => s + p[1], 0) / tr.length;
+    const rs = tr.reduce((s, [x, y]) => s + (y - f(x)) ** 2, 0), ts = tr.reduce((s, p) => s + (p[1] - my) ** 2, 0);
+    document.getElementById("pR2").textContent = (1 - rs / ts).toFixed(3);
+    document.getElementById("pTe").textContent = (te.reduce((s, [x, y]) => s + (y - f(x)) ** 2, 0) / te.length).toFixed(2);
+  }
+  gen(); draw();
+  document.getElementById("pdeg").oninput = draw;
+  document.getElementById("pNew").onclick = () => { gen(); draw(); };
+})();
+</script>
+</body></html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DAB Çalışma — Data Analytics for Business</title>
+<meta name="description" content="İTÜ Data Analytics for Business: Lineer Regresyon, Naive Bayes, KNN ve Lojistik Regresyon için etkileşimli çalışma sitesi.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+<div class="wrap" style="grid-template-columns:1fr"><main>
+<div class="hero">
+<span class="tag">İTÜ · Data Analytics for Business · Dr. M. Y. Ulukuş</span>
+<h1>Sınava etkileşimli çalış 📊</h1>
+<p class="lead">İlk 4 slayt destesi konu konu: Türkçe anlatım + formüller + oynayabileceğin animasyonlar + sınavda çıkabilecek Python kodları + mini quizler.</p>
+</div>
+<div class="topics">
+<a href="1-overview.html"><span class="n">01</span><h3>Genel Bakış</h3><p>Y = f(X) + ε, prediction vs inference, supervised/unsupervised, train vs test MSE, overfitting.</p></a>
+<a href="2-linear-regression.html"><span class="n">02</span><h3>Lineer Regresyon</h3><p>Least squares, gradient descent, SE & t-test, R², çoklu regresyon, dummy, polinom.</p></a>
+<a href="3-naive-bayes-knn.html"><span class="n">03</span><h3>Naive Bayes & KNN</h3><p>Koşullu olasılık, Bayes kuralı, optimal Bayes classifier, Naive Bayes, KNN ve K seçimi.</p></a>
+<a href="4-logistic-regression.html"><span class="n">04</span><h3>Lojistik Regresyon</h3><p>Sigmoid, odds/log-odds, MLE, confusion matrix, eşik, ROC/AUC, multi-class.</p></a>
+<a href="cheatsheet.html"><span class="n">⚡</span><h3>Özet Kağıdı</h3><p>Tüm formüller ve sklearn kalıpları tek sayfada — sınavdan önceki son 15 dakika için.</p></a>
+</div>
+
+<h2>Etkileşimli demolar</h2>
+<div class="tw"><table>
+<tr><th>Demo</th><th>Ne öğretiyor?</th></tr>
+<tr><td><a href="1-overview.html#mse">Esneklik vs Train/Test MSE</a></td><td>U şeklindeki test hatası, overfitting</td></tr>
+<tr><td><a href="2-linear-regression.html#slr">Least squares'i elle bul</a></td><td>Residual, RSS, neden OLS minimum</td></tr>
+<tr><td><a href="2-linear-regression.html#gd">Gradient descent animasyonu</a></td><td>Learning rate, yakınsama/ıraksama</td></tr>
+<tr><td><a href="2-linear-regression.html#acc-coef">Population vs LS doğruları</a></td><td>Standard error sezgisi</td></tr>
+<tr><td><a href="3-naive-bayes-knn.html#prob">Satranç Bayes örneği</a></td><td>Toplam olasılık + Bayes kuralı</td></tr>
+<tr><td><a href="3-naive-bayes-knn.html#nb">Naive Bayes hesaplayıcı</a></td><td>Elle çözüm adımları, Laplace</td></tr>
+<tr><td><a href="3-naive-bayes-knn.html#knn">KNN oyun alanı</a></td><td>K'nın karar sınırına etkisi</td></tr>
+<tr><td><a href="4-logistic-regression.html#model">Sigmoid & MLE</a></td><td>β₀, β₁, log-likelihood</td></tr>
+<tr><td><a href="4-logistic-regression.html#esik">Eşik → Confusion matrix → ROC</a></td><td>Sensitivity/specificity trade-off, AUC</td></tr>
+<tr><td><a href="4-logistic-regression.html#nonlin">Eğri karar sınırları</a></td><td>Polinom özellikli lojistik regresyon</td></tr>
+</table></div>
+
+<h2>Python notebook'ları</h2>
+<p>Repodaki <code>notebooks/</code> klasöründe her konu için çalıştırılabilir Jupyter notebook'ları var (veri setleri kodun içinde üretiliyor; internet/CSV gerekmez). Google Colab'da açmak için: Colab → <i>File → Open notebook → GitHub</i> → repo adresini yapıştır.</p>
+
+<div class="box exam">Hoca: kodlama alıştırmalarının çözümü yok ama <b>sınav soruları sıklıkla onlarla ilişkili</b>. Her sayfanın sonundaki "Python kodları" bölümlerini ve notebook'ları mutlaka bir kez kendin çalıştır.</div>
+</main></div>
+<script src="assets/app.js"></script>
+</body></html>

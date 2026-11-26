@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>⚡ Özet Kağıdı — DAB Çalışma</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+<style>.cs{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}.cs .card{margin:0}.cs h3{margin-top:0}@media print{header.top,footer{display:none}.card{break-inside:avoid;box-shadow:none}}</style>
+</head><body>
+<div class="wrap" style="grid-template-columns:1fr"><main>
+<h1>⚡ Özet Kağıdı</h1>
+<p class="lead">Sınavdan önceki son tekrar. Yazdırmak için tarayıcıdan <i>Print</i> → PDF.</p>
+<div class="cs">
+<div class="card"><h3>Temel kavramlar</h3>
+\(Y = f(X)+\varepsilon\) · Prediction (doğru \(\hat Y\)) vs Inference (ilişkiyi anlamak)<br>
+\(E(Y-\hat Y)^2 = [f-\hat f]^2 + \operatorname{Var}(\varepsilon)\) → reducible + irreducible<br>
+Regression: nicel Y · Classification: nitel Y<br>
+Supervised: \(y_i\) var · Unsupervised: \(y_i\) yok<br>
+Esneklik ↑ → <b>train MSE ↓ hep</b>, <b>test MSE U şekli</b><br>
+Test MSE = Var(\(\hat f\)) + Bias² + Var(ε)</div>
+
+<div class="card"><h3>Basit lineer regresyon</h3>
+$$\hat\beta_1=\frac{\sum(x_i-\bar x)(y_i-\bar y)}{\sum(x_i-\bar x)^2},\ \hat\beta_0=\bar y-\hat\beta_1\bar x$$
+RSS \(=\sum e_i^2\) · RSE \(=\sqrt{\text{RSS}/(n-2)}\)<br>
+\(R^2 = 1-\text{RSS}/\text{TSS}\), TSS \(=\sum(y_i-\bar y)^2\); SLR'de \(R^2=r^2\)<br>
+SE(\(\hat\beta_1)^2=\sigma^2/\sum(x_i-\bar x)^2\) · %95 GA: \(\hat\beta_1\pm2\,\text{SE}\)<br>
+\(t=\hat\beta_1/\text{SE}(\hat\beta_1)\), \(H_0:\beta_1=0\)</div>
+
+<div class="card"><h3>Gradient descent</h3>
+\(\partial\text{SSE}/\partial\beta_0=-2\sum(y_i-\hat y_i)\)<br>
+\(\partial\text{SSE}/\partial\beta_1=-2\sum x_i(y_i-\hat y_i)\)<br>
+\(\beta\leftarrow\beta-\alpha\nabla\) · α büyük → ıraksar, küçük → yavaş<br>
+Adımlar: başlat → SSE → gradyan → güncelle → tekrar</div>
+
+<div class="card"><h3>Çoklu regresyon</h3>
+\(\hat{\boldsymbol\beta}=(\mathbf X^\top\mathbf X)^{-1}\mathbf X^\top\mathbf y\)<br>
+\(\beta_j\): <b>diğerleri sabitken</b> X_j +1 → Y'deki ort. değişim<br>
+Advertising: 2.939 + 0.046 TV + 0.189 radio − 0.001 news<br>
+\(F=\frac{(\text{TSS}-\text{RSS})/p}{\text{RSS}/(n-p-1)}\)<br>
+k seviye → k−1 dummy · \(X^2\) eklemek = hâlâ lineer model</div>
+
+<div class="card"><h3>Diğer metrikler</h3>
+MSE \(=\frac1n\sum(y-\hat y)^2\) · RMSE \(=\sqrt{\text{MSE}}\)<br>
+MAE \(=\frac1n\sum|y-\hat y|\) · MAPE \(=\frac{100}{n}\sum|\frac{y-\hat y}{y}|\)<br>
+Error rate \(=\frac1n\sum I(y_i\ne\hat y_i)\)</div>
+
+<div class="card"><h3>Olasılık</h3>
+\(P(A|B)=P(A\cap B)/P(B)\)<br>
+Toplam: \(P(B)=\sum_i P(A_i)P(B|A_i)\)<br>
+Bayes: \(P(A_i|B)=\dfrac{P(A_i)P(B|A_i)}{\sum_k P(A_k)P(B|A_k)}\)<br>
+Satranç: P(W)=0.375, P(T₁|W)=0.4</div>
+
+<div class="card"><h3>Bayes classifier & Naive Bayes</h3>
+Optimal: \(\arg\max_j P(Y=j|X=x_0)\) → en düşük hata (Bayes error), ama P(Y|X) bilinmez<br>
+NB: \(\hat y=\arg\max_k \pi_k\prod_j P(x_j|Y=k)\) (koşullu bağımsızlık)<br>
+\(\hat\pi_k=n_k/n\) · kategorik: sayım/n_k · sayısal: Gaussian (μ, σ²)<br>
+Laplace: (sayı+1)/(n_k + #değer)</div>
+
+<div class="card"><h3>KNN</h3>
+\(P(Y=j|X=x_0)=\frac1K\sum_{i\in\mathcal N_0}I(y_i=j)\)<br>
+K=1: train hata 0, pürüzlü sınır, overfit · K büyük: düz sınır, underfit<br>
+Esneklik ~ 1/K · Uzaklık tabanlı → <b>ölçekle</b> (StandardScaler)</div>
+
+<div class="card"><h3>Lojistik regresyon</h3>
+\(p(X)=\dfrac{e^{\beta_0+\beta_1X}}{1+e^{\beta_0+\beta_1X}}\) · odds \(=p/(1-p)=e^{\beta_0+\beta_1X}\)<br>
+log-odds lineer · X +1 → odds × \(e^{\beta_1}\)<br>
+MLE: \(\max \sum[y\log p+(1-y)\log(1-p)]\), kapalı form yok<br>
+Default: −10.6513 + 0.0055·balance → p(1000)=0.00576, p(2000)=0.586<br>
+Student: tek başına +0.40, çoklu modelde −0.65 (confounding)</div>
+
+<div class="card"><h3>Confusion matrix</h3>
+Sensitivity = TPR = Recall = TP/P · Specificity = TN/N<br>
+FPR = FP/N = 1 − spec (Type I) · FNR = FN/P (Type II)<br>
+Precision = TP/(TP+FP) · Accuracy = (TP+TN)/n<br>
+Default @0.5: 252/333 = %75.7 kaçırıldı, hata %2.75<br>
+Default @0.2: 138/333 = %41.4 kaçırıldı, hata %3.73<br>
+Eşik ↓ → sensitivity ↑, specificity ↓</div>
+
+<div class="card"><h3>ROC / AUC</h3>
+x: FPR, y: TPR, tüm eşikler · ideal: sol üst köşe<br>
+AUC=1 mükemmel, 0.5 rastgele</div>
+
+<div class="card"><h3>sklearn kalıpları</h3>
+<pre><code>train_test_split(X, y, test_size=0.2, random_state=0)
+LinearRegression().fit(X, y).coef_, .intercept_
+KNeighborsClassifier(n_neighbors=k)
+GaussianNB() / CategoricalNB(alpha=1)
+LogisticRegression(C=1e10).predict_proba(X)[:, 1]
+confusion_matrix(y_true, y_pred)  # satır=gerçek
+roc_curve(y, p); roc_auc_score(y, p)
+smf.ols("y ~ x1 + x2", df).fit().summary()
+smf.logit("y ~ x1", df).fit().summary()</code></pre></div>
+</div>
+</main></div>
+<script src="assets/app.js"></script>
+</body></html>
