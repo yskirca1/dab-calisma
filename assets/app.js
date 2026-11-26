@@ -5,6 +5,7 @@ const PAGES = [
   ["2-linear-regression.html", "2 · Lineer Regresyon"],
   ["3-naive-bayes-knn.html", "3 · Naive Bayes & KNN"],
   ["4-logistic-regression.html", "4 · Lojistik Regresyon"],
+  ["ornekler.html", "✍️ Örnekler"],
   ["cheatsheet.html", "⚡ Özet Kağıdı"],
 ];
 

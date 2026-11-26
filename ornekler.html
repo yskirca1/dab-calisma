@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>✍️ Çözümlü Örnekler — DAB Çalışma</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.ex{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin:14px 0;box-shadow:var(--shadow)}
+.ex .hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.ex .no{font-weight:800;color:var(--a2)}
+.ex .lv{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
+.ex details{margin:8px 0 0;box-shadow:none}
+.ex details summary{color:var(--accent)}
+.ex details.hint summary{color:var(--muted)}
+.ex .done{margin-left:auto;font-size:13px;display:flex;gap:6px;align-items:center;cursor:pointer;color:var(--muted)}
+.ex.is-done{border-color:var(--good)}
+.ex.is-done .no::after{content:" ✓";color:var(--good)}
+.ans{background:color-mix(in srgb,var(--good) 12%,transparent);border-radius:8px;padding:6px 10px;font-weight:700;display:inline-block;margin-top:6px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.filters button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.mini{font-size:14px}
+.mini td,.mini th{padding:5px 8px;text-align:center}
+.progress{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:8px}
+.progress i{display:block;height:100%;background:var(--good);width:0;transition:width .3s}
+</style>
+</head><body>
+<div class="wrap"><aside class="toc"></aside><main>
+<span class="tag">Pratik</span>
+<h1>✍️ Çözümlü Örnekler</h1>
+<p class="lead">Sınav tarzı sorular — hepsi <b>hesap makinesiz</b> çözülecek şekilde seçildi (küçük sayılar, kesirler, kareler). Önce kendin çöz, sonra "Çözümü göster"e bas.</p>
+<div class="filters" id="filters">
+<button class="b on" data-f="all">Hepsi</button>
+<button class="b" data-f="t1">1 · Genel Bakış</button>
+<button class="b" data-f="t2">2 · Lineer Reg.</button>
+<button class="b" data-f="t3">3 · NB & KNN</button>
+<button class="b" data-f="t4">4 · Lojistik</button>
+<button class="b" data-f="code">💻 Kod</button>
+</div>
+<div class="stat" style="display:inline-block">Çözdüğün <b id="cnt">0 / 0</b></div>
+<div class="progress"><i id="bar"></i></div>
+
+<!-- ===================== 1. GENEL BAKIŞ ===================== -->
+<h2 id="t1">1 · Genel Bakış</h2>
+
+<div class="ex" data-t="t1"><div class="hd"><span class="no">Örnek 1</span><span class="lv">Kavram</span></div>
+<p>Aşağıdaki problemlerin her biri için (a) <b>regression mı classification mı</b>, (b) <b>supervised mı unsupervised mı</b> olduğunu söyle.</p>
+<ol><li>Bir evin m², oda sayısı ve semtinden satış fiyatını tahmin etmek</li>
+<li>Bir kredi başvurusunun onaylanıp onaylanmayacağını tahmin etmek</li>
+<li>Müşterileri alışveriş davranışlarına göre (etiket olmadan) gruplara ayırmak</li>
+<li>Bir e-postanın spam olup olmadığına karar vermek</li></ol>
+<details><summary>Çözümü göster</summary>
+<ol><li>Fiyat sayısal → <b>regression</b>, etiket (fiyat) var → <b>supervised</b></li>
+<li>Onay / ret bir etiket → <b>classification</b>, supervised</li>
+<li>Y yok, sadece X → <b>unsupervised</b> (clustering); regression/classification değil</li>
+<li>Spam / değil → <b>classification</b>, supervised</li></ol>
+<p>Kural: <b>Response'un türüne bak.</b> Sayıysa regression, kategoriyse classification. Response hiç yoksa unsupervised.</p></details></div>
+
+<div class="ex" data-t="t1"><div class="hd"><span class="no">Örnek 2</span><span class="lv">MSE hesabı</span></div>
+<p>Bir modelin 4 test gözlemi için gerçek değerleri ve tahminleri:</p>
+<div class="tw"><table class="mini"><tr><th>i</th><th>1</th><th>2</th><th>3</th><th>4</th></tr><tr><td>\(y_i\)</td><td>2</td><td>4</td><td>6</td><td>8</td></tr><tr><td>\(\hat y_i\)</td><td>3</td><td>4</td><td>4</td><td>9</td></tr></table></div>
+<p>Test MSE'yi hesapla.</p>
+<details class="hint"><summary>İpucu</summary>Önce hataları \(y_i-\hat y_i\) bul, karelerini al, ortalamasını al.</details>
+<details><summary>Çözümü göster</summary>
+<p>Hatalar: \(2-3=-1,\ 4-4=0,\ 6-4=2,\ 8-9=-1\)</p>
+<p>Kareler: \(1,\ 0,\ 4,\ 1\) → toplam \(=6\)</p>
+$$\text{MSE}=\frac{6}{4}=1.5$$
+<span class="ans">MSE = 1.5</span>
+<p>Not: Büyük hata (2) tek başına toplamın \(4/6\)'sını oluşturuyor → MSE büyük hataları çok cezalandırır.</p></details></div>
+
+<div class="ex" data-t="t1"><div class="hd"><span class="no">Örnek 3</span><span class="lv">Grafik / tablo yorumu</span></div>
+<p>Esnekliği artan 5 model için train ve test MSE değerleri:</p>
+<div class="tw"><table class="mini"><tr><th>Model (esneklik →)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr><tr><td>Train MSE</td><td>10</td><td>6</td><td>4</td><td>3</td><td>1</td></tr><tr><td>Test MSE</td><td>12</td><td>7</td><td>5</td><td>8</td><td>15</td></tr></table></div>
+<p>(a) Hangi modeli seçersin? (b) Hangi model overfit, hangisi underfit? (c) Model 5'in train MSE'si en düşük olduğu halde neden seçilmez?</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) Seçimi <b>test MSE</b>'ye göre yaparız → en küçük test MSE = 5 → <b>Model 3</b>.</p>
+<p>(b) Model 5: train çok düşük (1), test çok yüksek (15) → <b>overfit</b> (gürültüyü ezberlemiş). Model 1: hem train hem test yüksek → <b>underfit</b> (çok basit, yüksek bias).</p>
+<p>(c) Train MSE esneklik arttıkça <b>her zaman</b> düşer; modelin görmediği veride ne yaptığını göstermez. Test MSE ise U şeklinde.</p>
+<span class="ans">Model 3 · 5 overfit · 1 underfit</span></details></div>
+
+<div class="ex" data-t="t1"><div class="hd"><span class="no">Örnek 4</span><span class="lv">Reducible / irreducible</span></div>
+<p>Bir problemde \(\operatorname{Var}(\varepsilon)=2\). Modelin test MSE'si 5.</p>
+<p>(a) Hatanın ne kadarı model değiştirilerek azaltılabilir? (b) Bir arkadaşın "daha esnek bir modelle test MSE'yi 1'e indirdim" diyor. İnanır mısın?</p>
+<details><summary>Çözümü göster</summary>
+$$\text{Test MSE}=\underbrace{\text{reducible}}_{?}+\underbrace{\operatorname{Var}(\varepsilon)}_{2}\ \Rightarrow\ \text{reducible}=5-2=3$$
+<p>(b) <b>Hayır.</b> Test MSE hiçbir zaman \(\operatorname{Var}(\varepsilon)=2\)'nin altına inemez. 1 ölçtüyse ya test verisi sızmış (data leakage) ya da aslında train MSE'ye bakıyor.</p>
+<span class="ans">(a) 3 · (b) Mümkün değil, alt sınır 2</span></details></div>
+
+<!-- ===================== 2. LİNEER REGRESYON ===================== -->
+<h2 id="t2">2 · Lineer Regresyon</h2>
+
+<div class="ex" data-t="t2"><div class="hd"><span class="no">Örnek 5</span><span class="lv">Elle OLS + RSS + R² (klasik sınav sorusu)</span></div>
+<div class="tw"><table class="mini"><tr><th>x</th><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td></tr><tr><th>y</th><td>2</td><td>4</td><td>5</td><td>4</td><td>5</td></tr></table></div>
+<p>(a) \(\hat\beta_0,\hat\beta_1\)'i bul. (b) \(x=6\) için tahmin yap. (c) RSS ve \(R^2\)'yi hesapla.</p>
+<details class="hint"><summary>İpucu</summary>\(\bar x\), \(\bar y\) → sapmalar tablosu → \(\sum(x-\bar x)(y-\bar y)\) ve \(\sum(x-\bar x)^2\).</details>
+<details><summary>Çözümü göster</summary>
+<p>\(\bar x = 15/5 = 3,\quad \bar y = 20/5 = 4\)</p>
+<div class="tw"><table class="mini"><tr><th>\(x-\bar x\)</th><td>−2</td><td>−1</td><td>0</td><td>1</td><td>2</td></tr><tr><th>\(y-\bar y\)</th><td>−2</td><td>0</td><td>1</td><td>0</td><td>1</td></tr><tr><th>çarpım</th><td>4</td><td>0</td><td>0</td><td>0</td><td>2</td></tr><tr><th>\((x-\bar x)^2\)</th><td>4</td><td>1</td><td>0</td><td>1</td><td>4</td></tr></table></div>
+$$\hat\beta_1=\frac{6}{10}=0.6,\qquad \hat\beta_0=\bar y-\hat\beta_1\bar x=4-0.6\cdot3=2.2$$
+<p>(b) \(\hat y(6)=2.2+0.6\cdot6=2.2+3.6=5.8\)</p>
+<p>(c) Tahminler: \(2.8,\ 3.4,\ 4.0,\ 4.6,\ 5.2\). Residual'lar: \(-0.8,\ 0.6,\ 1.0,\ -0.6,\ -0.2\).</p>
+$$\text{RSS}=0.64+0.36+1+0.36+0.04=2.4$$
+$$\text{TSS}=\sum(y-\bar y)^2=4+0+1+0+1=6,\qquad R^2=1-\frac{2.4}{6}=1-0.4=0.6$$
+<span class="ans">ŷ = 2.2 + 0.6x · ŷ(6) = 5.8 · RSS = 2.4 · R² = 0.6</span>
+<p>Kontrol: residual'ların toplamı 0 olmalı → \(-0.8+0.6+1-0.6-0.2=0\) ✓ (OLS'nin bir özelliği).</p></details></div>
+
+<div class="ex" data-t="t2"><div class="hd"><span class="no">Örnek 6</span><span class="lv">Katsayı yorumu & tahmin</span></div>
+<p>Çoklu regresyon modeli (sales bin adet, bütçeler bin $):</p>
+$$\widehat{\texttt{sales}} = 3 + 0.05\,\texttt{TV} + 0.2\,\texttt{radio}$$
+<p>(a) TV'ye ek <b>2000 $</b> harcanırsa (radio sabit) satış ne kadar değişir? (b) TV = 100, radio = 20 için tahmini satış? (c) \(\beta_{\text{radio}}=0.2\)'yi bir cümleyle yorumla.</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) 2000 $ = 2 birim → \(0.05\times2=0.1\) bin adet = <b>100 adet</b> artış.</p>
+<p>(b) \(3+0.05\cdot100+0.2\cdot20=3+5+4=12\) → <b>12 000 adet</b>.</p>
+<p>(c) "TV bütçesi sabitken, radyoya harcanan her ek 1000 $ satışları ortalama 200 adet artırır."</p>
+<span class="ans">+100 adet · 12 000 adet</span>
+<p>⚠️ "Diğerleri sabitken" kısmını yazmazsan sınavda puan kırılabilir.</p></details></div>
+
+<div class="ex" data-t="t2"><div class="hd"><span class="no">Örnek 7</span><span class="lv">t-testi & güven aralığı</span></div>
+<p>Bir regresyon çıktısında \(\hat\beta_1=0.6\), \(\operatorname{SE}(\hat\beta_1)=0.2\).</p>
+<p>(a) \(H_0:\beta_1=0\) için t istatistiği? (b) Yaklaşık %95 güven aralığı? (c) X ile Y arasında ilişki var mı?</p>
+<details><summary>Çözümü göster</summary>
+$$t=\frac{0.6-0}{0.2}=3$$
+$$\text{\%95 GA}\approx\hat\beta_1\pm2\,\text{SE}=0.6\pm0.4=[0.2,\ 1.0]$$
+<p>(c) \(|t|=3>2\) ve aralık <b>0'ı içermiyor</b> → \(H_0\) reddedilir → ilişki var (p-value küçük).</p>
+<span class="ans">t = 3 · [0.2, 1.0] · ilişki var</span></details></div>
+
+<div class="ex" data-t="t2"><div class="hd"><span class="no">Örnek 8</span><span class="lv">Gradient descent: bir adım</span></div>
+<p>Veri: \((x,y)=(1,2)\) ve \((2,4)\). Başlangıç \(\beta_0=0,\ \beta_1=0\), learning rate \(\alpha=0.1\). SSE'yi minimize ediyoruz.</p>
+<p>(a) Gradyanları hesapla. (b) Bir adım sonraki \(\beta_0,\beta_1\)? (c) SSE düştü mü?</p>
+<details class="hint"><summary>İpucu</summary>\(\partial\text{SSE}/\partial\beta_0=-2\sum e_i\), \(\partial\text{SSE}/\partial\beta_1=-2\sum x_ie_i\), \(e_i=y_i-\beta_0-\beta_1x_i\)</details>
+<details><summary>Çözümü göster</summary>
+<p>Başta tahminler 0 → residual'lar \(e=(2,4)\). SSE \(=4+16=20\).</p>
+$$g_0=-2(2+4)=-12,\qquad g_1=-2(1\cdot2+2\cdot4)=-2\cdot10=-20$$
+$$\beta_0=0-0.1(-12)=1.2,\qquad \beta_1=0-0.1(-20)=2$$
+<p>(c) Yeni tahminler: \(1.2+2=3.2\), \(1.2+4=5.2\) → residual'lar \(-1.2,\ -1.2\) → SSE \(=1.44+1.44=2.88\). 20'den 2.88'e <b>düştü</b> ✓</p>
+<span class="ans">β₀ = 1.2 · β₁ = 2 · SSE: 20 → 2.88</span>
+<p>Gerçek çözüm \(\beta_0=0,\beta_1=2\) (veri tam \(y=2x\)). Adımlar devam ettikçe \(\beta_0\) 0'a yaklaşır.</p></details></div>
+
+<div class="ex" data-t="t2"><div class="hd"><span class="no">Örnek 9</span><span class="lv">Dummy değişken</span></div>
+<p><code>region</code> 3 seviyeli: East, West, South. East baseline seçilerek model:</p>
+$$\widehat{\texttt{balance}}=500+30\,x_{\text{West}}-20\,x_{\text{South}}$$
+<p>(a) Kaç dummy var, neden 3 değil? (b) Her bölgenin ortalama tahmini balance'ı? (c) West ile South farkı?</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) <b>k − 1 = 2</b> dummy. 3 koysaydık \(x_E+x_W+x_S=1\) olur, intercept ile mükemmel doğrusallık (dummy variable trap).</p>
+<p>(b) East (ikisi de 0): <b>500</b> · West: \(500+30=\)<b>530</b> · South: \(500-20=\)<b>480</b></p>
+<p>(c) \(530-480=50\)</p>
+<span class="ans">E 500 · W 530 · S 480 · fark 50</span></details></div>
+
+<div class="ex" data-t="t2"><div class="hd"><span class="no">Örnek 10</span><span class="lv">Kavram: R², korelasyon, polinom</span></div>
+<p>(a) Basit regresyonda \(r=0.8\) ise \(R^2\)? (b) \(r=-0.8\) olsaydı? (c) mpg ~ hp modeline \(hp^2\) ekleyince train \(R^2\) 0.61'den 0.69'a çıktı. \(hp^5\)'e kadar eklesek train \(R^2\) ne olur, iyi bir fikir mi? (d) \(mpg=\beta_0+\beta_1hp+\beta_2hp^2\) lineer model mi?</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) \(R^2=r^2=0.64\) · (b) yine <b>0.64</b> (kare alındığı için işaret önemsiz; eğim negatif olur)</p>
+<p>(c) Train \(R^2\) <b>azalamaz</b>, artar ya da aynı kalır. Ama bu overfitting riski demek; karar <b>test</b> performansına göre verilmeli.</p>
+<p>(d) <b>Evet.</b> Katsayılara göre lineer; \(X_2=hp^2\) diye yeni bir değişken tanımlayıp OLS yapıyoruz.</p>
+<span class="ans">0.64 · 0.64 · artar ama overfit riski · evet lineer</span></details></div>
+
+<!-- ===================== 3. NAIVE BAYES & KNN ===================== -->
+<h2 id="t3">3 · Bayes, Naive Bayes & KNN</h2>
+
+<div class="ex" data-t="t3"><div class="hd"><span class="no">Örnek 11</span><span class="lv">Bayes kuralı (test paradoksu)</span></div>
+<p>Bir hastalık nüfusun %1'inde var. Test hastalarda %90 pozitif çıkıyor (sensitivity), sağlıklılarda %10 yanlışlıkla pozitif çıkıyor. Testi pozitif çıkan birinin gerçekten hasta olma olasılığı?</p>
+<details class="hint"><summary>İpucu</summary>Olasılık yerine <b>1000 kişi</b> düşün. Hesap makinesine gerek kalmaz.</details>
+<details><summary>Çözümü göster</summary>
+<p>1000 kişi: <b>10 hasta</b>, 990 sağlıklı.</p>
+<ul><li>Hastaların %90'ı pozitif → <b>9</b> kişi</li><li>Sağlıklıların %10'u pozitif → <b>99</b> kişi</li></ul>
+<p>Toplam pozitif: \(9+99=108\)</p>
+$$P(\text{hasta}\mid +)=\frac{9}{108}=\frac{1}{12}\approx0.083$$
+<span class="ans">≈ %8.3 (1/12)</span>
+<p>Formülle: \(P(+)=0.01\cdot0.9+0.99\cdot0.1=0.108\) (toplam olasılık), \(P(H|+)=0.009/0.108\). Prior çok düşük olduğu için posterior da düşük kalır.</p></details></div>
+
+<div class="ex" data-t="t3"><div class="hd"><span class="no">Örnek 12</span><span class="lv">Toplam olasılık + Bayes</span></div>
+<p>Bir fabrikada üretimin %60'ını A makinesi, %40'ını B makinesi yapıyor. A'nın ürettiklerinin %1'i, B'ninkilerin %2'si kusurlu.</p>
+<p>(a) Rastgele bir ürünün kusurlu olma olasılığı? (b) Kusurlu bulunan bir ürünün A'dan gelmiş olma olasılığı?</p>
+<details><summary>Çözümü göster</summary>
+$$P(K)=0.6\cdot0.01+0.4\cdot0.02=0.006+0.008=0.014$$
+$$P(A\mid K)=\frac{0.006}{0.014}=\frac{6}{14}=\frac{3}{7}\approx0.43$$
+<span class="ans">(a) 0.014 · (b) 3/7</span>
+<p>Yorum: A daha çok üretse de kusur oranı düşük olduğu için kusurluların çoğu B'den geliyor (4/7).</p></details></div>
+
+<div class="ex" data-t="t3"><div class="hd"><span class="no">Örnek 13</span><span class="lv">Naive Bayes elle</span></div>
+<p>10 e-postalık eğitim verisi: 4 spam, 6 normal.</p>
+<div class="tw"><table class="mini"><tr><th></th><th>"bedava" geçiyor</th><th>"toplantı" geçiyor</th></tr><tr><td>Spam (4)</td><td>3</td><td>1</td></tr><tr><td>Normal (6)</td><td>1</td><td>3</td></tr></table></div>
+<p>Yeni e-posta: "bedava" <b>var</b>, "toplantı" <b>yok</b>. Naive Bayes ile sınıflandır, spam olma olasılığını bul.</p>
+<details class="hint"><summary>İpucu</summary>"toplantı yok" olasılığı = 1 − "toplantı var" olasılığı (o sınıf içinde).</details>
+<details><summary>Çözümü göster</summary>
+<p><b>Spam:</b> \(P(S)=\frac{4}{10}\), \(P(\text{bedava}|S)=\frac34\), \(P(\text{toplantı yok}|S)=\frac34\)</p>
+$$\frac{4}{10}\cdot\frac34\cdot\frac34=\frac{4}{10}\cdot\frac{9}{16}=\frac{9}{40}$$
+<p><b>Normal:</b> \(P(N)=\frac{6}{10}\), \(P(\text{bedava}|N)=\frac16\), \(P(\text{toplantı yok}|N)=\frac36\)</p>
+$$\frac{6}{10}\cdot\frac16\cdot\frac36=\frac{6}{10}\cdot\frac{1}{12}=\frac{1}{20}=\frac{2}{40}$$
+<p>Spam skoru daha büyük → <b>Spam</b>. Normalize:</p>
+$$P(S\mid x)=\frac{9/40}{9/40+2/40}=\frac{9}{11}\approx0.82$$
+<span class="ans">Spam, olasılık 9/11</span></details></div>
+
+<div class="ex" data-t="t3"><div class="hd"><span class="no">Örnek 14</span><span class="lv">Laplace smoothing</span></div>
+<p>Örnek 13'teki veride "kazandınız" kelimesi spam'lerin 2'sinde, normal e-postaların <b>hiçbirinde</b> geçmiyor. Yeni e-postada "kazandınız" var.</p>
+<p>(a) Smoothing'siz \(P(\text{kazandınız}|N)\)? Sorun ne? (b) Laplace (+1) ile \(P(\text{kazandınız}|N)\) ve \(P(\text{kazandınız}|S)\)? (Özellik 2 değerli: var/yok.)</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) \(0/6=0\) → Normal sınıfın tüm çarpımı <b>0</b> olur; diğer kelimeler ne derse desin e-posta asla "Normal" olamaz. Tek bir görülmemiş değer kararı tamamen belirliyor.</p>
+<p>(b) Laplace: \(\dfrac{\text{sayı}+1}{n_k+\text{değer sayısı}}\)</p>
+$$P(\text{kaz}|N)=\frac{0+1}{6+2}=\frac18,\qquad P(\text{kaz}|S)=\frac{2+1}{4+2}=\frac36=\frac12$$
+<span class="ans">0 → 1/8 · 1/2</span></details></div>
+
+<div class="ex" data-t="t3"><div class="hd"><span class="no">Örnek 15</span><span class="lv">KNN elle</span></div>
+<p>Sorgu noktası \(x_0=(2,2)\). Eğitim verisi:</p>
+<div class="tw"><table class="mini"><tr><th>Nokta</th><td>A(2,3)</td><td>B(3,3)</td><td>C(1,0)</td><td>D(4,2)</td><td>E(0,1)</td><td>F(5,5)</td></tr><tr><th>Sınıf</th><td>🔵</td><td>🟠</td><td>🟠</td><td>🟠</td><td>🔵</td><td>🔵</td></tr></table></div>
+<p>K = 1, K = 3 ve K = 5 için tahminleri ve sınıf olasılıklarını bul.</p>
+<details class="hint"><summary>İpucu</summary>Karekök almana gerek yok: <b>kare uzaklıkla</b> sıralama aynı kalır.</details>
+<details><summary>Çözümü göster</summary>
+<p>Kare uzaklıklar \(d^2=(x_1-2)^2+(x_2-2)^2\):</p>
+<div class="tw"><table class="mini"><tr><th></th><td>A</td><td>B</td><td>C</td><td>D</td><td>E</td><td>F</td></tr><tr><th>\(d^2\)</th><td>0+1=<b>1</b></td><td>1+1=<b>2</b></td><td>1+4=<b>5</b></td><td>4+0=<b>4</b></td><td>4+1=<b>5</b></td><td>9+9=<b>18</b></td></tr></table></div>
+<p>Sıra: A(1) → B(2) → D(4) → C, E(5) → F(18)</p>
+<ul><li><b>K=1:</b> {A} → 🔵, \(P(🔵)=1\)</li>
+<li><b>K=3:</b> {A, B, D} → 1 mavi, 2 turuncu → \(P(🟠)=2/3\) → 🟠</li>
+<li><b>K=5:</b> {A, B, D, C, E} → 2 mavi, 3 turuncu → \(P(🟠)=3/5\) → 🟠</li></ul>
+<span class="ans">K=1 🔵 · K=3 🟠 (2/3) · K=5 🟠 (3/5)</span>
+<p>Ders: Tahmin K'ya bağlı. Küçük K → tek bir komşuya aşırı duyarlı (yüksek varyans).</p></details></div>
+
+<div class="ex" data-t="t3"><div class="hd"><span class="no">Örnek 16</span><span class="lv">KNN & ölçekleme</span></div>
+<p>İki müşteri: P = (yaş 30, gelir 50 000), Q = (yaş 60, gelir 51 000). Sorgu: (yaş 31, gelir 50 500). Ölçekleme yapmadan Öklid uzaklığına göre en yakın komşu kim? Bu mantıklı mı?</p>
+<details><summary>Çözümü göster</summary>
+<p>P'ye: yaş farkı 1, gelir farkı 500 → \(d^2=1+250\,000\)</p>
+<p>Q'ya: yaş farkı 29, gelir farkı 500 → \(d^2=841+250\,000\)</p>
+<p>P daha yakın, ama farkı neredeyse tamamen <b>gelir</b> belirliyor; yaşın etkisi (1'e karşı 29!) toplamın içinde kayboluyor. Gelir 1000 $ farklı olsaydı yaşın hiçbir önemi kalmazdı.</p>
+<span class="ans">Sonuç: Önce StandardScaler ile ölçekle</span></details></div>
+
+<!-- ===================== 4. LOJİSTİK ===================== -->
+<h2 id="t4">4 · Lojistik Regresyon</h2>
+
+<div class="ex" data-t="t4"><div class="hd"><span class="no">Örnek 17</span><span class="lv">Odds ↔ olasılık</span></div>
+<p>(a) \(p=0.8\) → odds? (b) odds \(=0.25\) → \(p\)? (c) log-odds \(=0\) → \(p\)? (d) odds \(=1\) ne anlama gelir?</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) \(\dfrac{0.8}{0.2}=4\) · (b) \(p=\dfrac{\text{odds}}{1+\text{odds}}=\dfrac{0.25}{1.25}=\dfrac15=0.2\) · (c) \(\log(\text{odds})=0\Rightarrow\text{odds}=1\Rightarrow p=0.5\) · (d) Olay olma ve olmama olasılığı eşit (yarı yarıya).</p>
+<span class="ans">4 · 0.2 · 0.5 · eşit şans</span></details></div>
+
+<div class="ex" data-t="t4"><div class="hd"><span class="no">Örnek 18</span><span class="lv">Karar sınırı</span></div>
+<p>Model: \(\log\dfrac{p}{1-p}=-4+2x\).</p>
+<p>(a) Hangi \(x\) değerinde \(p=0.5\)? (b) \(x=3\) için log-odds ve sınıf (eşik 0.5)? (c) \(x=1\) için sınıf?</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) \(p=0.5\iff\text{log-odds}=0\iff -4+2x=0\iff x=2\) → <b>karar sınırı \(x^*=-\beta_0/\beta_1=2\)</b></p>
+<p>(b) \(-4+6=2>0\) → \(p>0.5\) → <b>sınıf 1</b> · (c) \(-4+2=-2<0\) → \(p<0.5\) → <b>sınıf 0</b></p>
+<span class="ans">x* = 2 · x=3 → 1 · x=1 → 0</span>
+<p>Kısa yol: Eşik 0.5 için \(e\)'yi hiç hesaplamana gerek yok, log-odds'un <b>işaretine</b> bakman yeter.</p></details></div>
+
+<div class="ex" data-t="t4"><div class="hd"><span class="no">Örnek 19</span><span class="lv">Katsayı yorumu (odds çarpanı)</span></div>
+<p>Model: \(\log\dfrac{p}{1-p}=0+\beta_1x\), \(\beta_1=\ln2\approx0.69\).</p>
+<p>(a) \(x\) 1 artınca odds nasıl değişir? (b) \(x=0,1,2\) için odds ve \(p\)'yi bul.</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) Odds \(e^{\beta_1}=e^{\ln2}=\)<b>2 katına</b> çıkar.</p>
+<div class="tw"><table class="mini"><tr><th>x</th><th>odds</th><th>p = odds/(1+odds)</th></tr><tr><td>0</td><td>\(e^0=1\)</td><td>1/2</td></tr><tr><td>1</td><td>2</td><td>2/3</td></tr><tr><td>2</td><td>4</td><td>4/5</td></tr></table></div>
+<p>Dikkat: Odds her adımda <b>sabit oranda</b> (×2) artıyor ama \(p\)'nin artışı sabit değil (0.5 → 0.67 → 0.8). Bu yüzden "X 1 artınca p şu kadar artar" denemez.</p>
+<span class="ans">×2 · p: 1/2, 2/3, 4/5</span></details></div>
+
+<div class="ex" data-t="t4"><div class="hd"><span class="no">Örnek 20</span><span class="lv">Confusion matrix metrikleri</span></div>
+<p>200 kişilik test setinde (pozitif = temerrüt):</p>
+<div class="tw"><table class="mini"><tr><th></th><th>Gerçek Yes</th><th>Gerçek No</th></tr><tr><th>Tahmin Yes</th><td>TP = 40</td><td>FP = 20</td></tr><tr><th>Tahmin No</th><td>FN = 10</td><td>TN = 130</td></tr></table></div>
+<p>Accuracy, error rate, sensitivity, specificity, FPR ve precision'ı bul.</p>
+<details><summary>Çözümü göster</summary>
+<p>P = TP + FN = 50, N = FP + TN = 150</p>
+<ul><li>Accuracy \(=\frac{40+130}{200}=\frac{170}{200}=0.85\) · Error \(=0.15\)</li>
+<li>Sensitivity (TPR, recall) \(=\frac{40}{50}=0.8\)</li>
+<li>Specificity \(=\frac{130}{150}=\frac{13}{15}\approx0.87\) · FPR \(=\frac{20}{150}=\frac{2}{15}\approx0.13\)</li>
+<li>Precision \(=\frac{40}{40+20}=\frac{2}{3}\)</li></ul>
+<span class="ans">0.85 · 0.15 · 0.8 · 13/15 · 2/15 · 2/3</span>
+<p>Paydalara dikkat: Sensitivity ve specificity <b>gerçek</b> sınıflara (sütunlar), precision ise <b>tahmin</b>e (satır) bölünür.</p></details></div>
+
+<div class="ex" data-t="t4"><div class="hd"><span class="no">Örnek 21</span><span class="lv">Eşik değiştirme + ROC noktası</span></div>
+<p>Modelin 6 müşteri için verdiği olasılıklar ve gerçek durum (1 = temerrüt):</p>
+<div class="tw"><table class="mini"><tr><th>p̂</th><td>0.9</td><td>0.7</td><td>0.6</td><td>0.4</td><td>0.35</td><td>0.1</td></tr><tr><th>y</th><td>1</td><td>0</td><td>1</td><td>1</td><td>0</td><td>0</td></tr></table></div>
+<p>Eşik 0.5 ve 0.3 için confusion matrix'i, sensitivity ve specificity'yi bul. ROC eğrisindeki noktaları yaz.</p>
+<details><summary>Çözümü göster</summary>
+<p>P = 3 (0.9, 0.6, 0.4), N = 3 (0.7, 0.35, 0.1)</p>
+<p><b>Eşik 0.5</b> → "Yes" denenler: 0.9, 0.7, 0.6 → TP = 2 (0.9, 0.6), FP = 1 (0.7), FN = 1 (0.4), TN = 2</p>
+<p>Sensitivity = 2/3, Specificity = 2/3 → ROC noktası (FPR, TPR) = (1/3, 2/3)</p>
+<p><b>Eşik 0.3</b> → "Yes": 0.9, 0.7, 0.6, 0.4, 0.35 → TP = 3, FP = 2, FN = 0, TN = 1</p>
+<p>Sensitivity = 1, Specificity = 1/3 → ROC noktası (2/3, 1)</p>
+<span class="ans">0.5: sens 2/3, spec 2/3 · 0.3: sens 1, spec 1/3</span>
+<p>Eşiği düşürmek → daha çok "Yes" → sensitivity ↑, specificity ↓. ROC'ta sağa ve yukarı kayıyoruz.</p></details></div>
+
+<div class="ex" data-t="t4"><div class="hd"><span class="no">Örnek 22</span><span class="lv">Kavram: neden lineer regresyon değil, confounding</span></div>
+<p>(a) Acil serviste 3 teşhisi (stroke=1, overdose=2, seizure=3) kodlayıp lineer regresyon yapmanın iki sorunu nedir? (b) Default verisinde <code>student</code> katsayısı tek başına +0.40, balance ve income eklenince −0.65 oluyor. Nasıl yorumlarsın?</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) ① Kodlama, sonuçlar arasında bir <b>sıralama ve eşit mesafe</b> varsayıyor (overdose, stroke ile seizure'ın "ortasında" mı?). Başka bir kodlama tamamen farklı model verir. ② İki sınıfta bile tahminler <b>[0,1] dışına</b> çıkabilir; olasılık olarak yorumlanamaz.</p>
+<p>(b) <b>Confounding:</b> Öğrencilerin bakiyeleri ortalamada daha yüksek, yüksek bakiye de riski artırıyor. Bakiye bilinmiyorsa öğrenci daha riskli (+). <b>Aynı bakiyede</b> ise öğrenci, öğrenci olmayandan daha az riskli (−).</p></details></div>
+
+<!-- ===================== KOD ===================== -->
+<h2 id="code">💻 Kod okuma / tamamlama</h2>
+
+<div class="ex" data-t="code"><div class="hd"><span class="no">Örnek 23</span><span class="lv">Boşluk doldur</span></div>
+<p>Veriyi %80 train, %20 test olacak şekilde bölüp lineer regresyon kuran kodu tamamla:</p>
+<pre><code>from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+X = df[____]            # TV ve radio
+y = df["sales"]
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, ________, random_state=1)
+model = LinearRegression().____(X_tr, y_tr)
+print(model.________, model.________)   # intercept ve katsayılar</code></pre>
+<details><summary>Çözümü göster</summary>
+<pre><code>X = df[["TV", "radio"]]     # çift köşeli parantez -> DataFrame (2 boyut)
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, random_state=1)
+model = LinearRegression().fit(X_tr, y_tr)
+print(model.intercept_, model.coef_)</code></pre>
+<p>Tek köşeli parantez <code>df["TV"]</code> 1 boyutlu Series verir; sklearn X için 2 boyut ister.</p></details></div>
+
+<div class="ex" data-t="code"><div class="hd"><span class="no">Örnek 24</span><span class="lv">Hatayı bul</span></div>
+<p>Bu kodda performansı olduğundan iyi gösteren bir hata var. Ne?</p>
+<pre><code>scaler = StandardScaler().fit(X)          # tüm veri
+X_s = scaler.transform(X)
+X_tr, X_te, y_tr, y_te = train_test_split(X_s, y, test_size=0.2)
+knn = KNeighborsClassifier(n_neighbors=5).fit(X_tr, y_tr)
+print(knn.score(X_te, y_te))</code></pre>
+<details><summary>Çözümü göster</summary>
+<p><b>Data leakage.</b> Scaler tüm veriyle (test dahil) fit ediliyor; test setinin ortalaması ve std'si modele sızıyor. Doğrusu: önce böl, sonra <b>sadece train</b> ile fit et.</p>
+<pre><code>X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2)
+scaler = StandardScaler().fit(X_tr)
+knn = KNeighborsClassifier(n_neighbors=5).fit(scaler.transform(X_tr), y_tr)
+print(knn.score(scaler.transform(X_te), y_te))</code></pre></details></div>
+
+<div class="ex" data-t="code"><div class="hd"><span class="no">Örnek 25</span><span class="lv">Çıktı oku</span></div>
+<pre><code>from sklearn.metrics import confusion_matrix
+print(confusion_matrix(y_test, y_pred))
+# [[50 10]
+#  [ 5 35]]</code></pre>
+<p>Pozitif sınıf = 1. TP, FP, FN, TN nedir? Sensitivity ve precision?</p>
+<details><summary>Çözümü göster</summary>
+<p>sklearn'de <b>satırlar = gerçek, sütunlar = tahmin</b>, sıra [0, 1]:</p>
+<div class="tw"><table class="mini"><tr><th></th><th>Tahmin 0</th><th>Tahmin 1</th></tr><tr><th>Gerçek 0</th><td>TN = 50</td><td>FP = 10</td></tr><tr><th>Gerçek 1</th><td>FN = 5</td><td>TP = 35</td></tr></table></div>
+<p>Sensitivity \(=\frac{35}{35+5}=\frac{35}{40}=0.875\) · Precision \(=\frac{35}{35+10}=\frac{35}{45}=\frac79\)</p>
+<span class="ans">TN 50 · FP 10 · FN 5 · TP 35 · sens 7/8 · prec 7/9</span>
+<p>Kısayol: <code>tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()</code></p></details></div>
+
+<div class="ex" data-t="code"><div class="hd"><span class="no">Örnek 26</span><span class="lv">Eşik kodu</span></div>
+<p><code>logit</code> eğitilmiş bir <code>LogisticRegression</code>. (a) <code>logit.predict(X_test)</code> hangi eşiği kullanır? (b) Eşik 0.3 ile tahmin yapan kodu yaz.</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) <b>0.5</b> (iki sınıfta en olası sınıf).</p>
+<pre><code>p = logit.predict_proba(X_test)[:, 1]   # 2. sütun = P(Y=1)
+y_hat = (p > 0.3).astype(int)</code></pre>
+<p><code>[:, 0]</code> yazarsan P(Y=0) alırsın; sık yapılan hata.</p></details></div>
+
+<div class="ex" data-t="code"><div class="hd"><span class="no">Örnek 27</span><span class="lv">K seçimi çıktısı</span></div>
+<pre><code>for k in [1, 3, 5, 15, 51]:
+    m = KNeighborsClassifier(n_neighbors=k).fit(X_tr, y_tr)
+    print(k, round(1 - m.score(X_tr, y_tr), 2), round(1 - m.score(X_te, y_te), 2))
+# 1  0.00 0.21
+# 3  0.08 0.15
+# 5  0.10 0.12
+# 15 0.13 0.14
+# 51 0.20 0.22</code></pre>
+<p>(a) Sütunlar ne? (b) Hangi K'yı seçersin? (c) K=1'de train hatası neden 0?</p>
+<details><summary>Çözümü göster</summary>
+<p>(a) K, <b>train hata oranı</b>, <b>test hata oranı</b> (<code>score</code> accuracy verir, 1 − accuracy = hata).</p>
+<p>(b) En düşük test hatası 0.12 → <b>K = 5</b>.</p>
+<p>(c) Her eğitim noktasının en yakın komşusu kendisi → hep doğru tahmin. Train hatası 0 ama test 0.21 → overfit.</p>
+<span class="ans">K = 5</span></details></div>
+
+</main></div>
+<script src="assets/app.js"></script>
+<script>
+(() => {
+  const exs = [...document.querySelectorAll('.ex')];
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('dab-done') || '{}'); } catch (e) {}
+  const upd = () => {
+    const n = exs.filter(e => e.classList.contains('is-done')).length;
+    document.getElementById('cnt').textContent = `${n} / ${exs.length}`;
+    document.getElementById('bar').style.width = (100 * n / exs.length) + '%';
+  };
+  exs.forEach((ex, i) => {
+    const id = 'e' + (i + 1);
+    const lab = document.createElement('label'); lab.className = 'done';
+    lab.innerHTML = '<input type="checkbox"> Çözdüm';
+    const cb = lab.querySelector('input');
+    cb.checked = !!saved[id]; ex.classList.toggle('is-done', cb.checked);
+    cb.onchange = () => { saved[id] = cb.checked; ex.classList.toggle('is-done', cb.checked); try { localStorage.setItem('dab-done', JSON.stringify(saved)); } catch (e) {} upd(); };
+    ex.querySelector('.hd').append(lab);
+  });
+  document.querySelectorAll('#filters button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#filters button').forEach(x => x.classList.toggle('on', x === b));
+    const f = b.dataset.f;
+    exs.forEach(e => e.style.display = (f === 'all' || e.dataset.t === f) ? '' : 'none');
+    document.querySelectorAll('main h2').forEach(h => h.style.display = (f === 'all' || h.id === f) ? '' : 'none');
+  });
+  upd();
+})();
+</script>
+</body></html>
